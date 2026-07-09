@@ -1,0 +1,20 @@
+bin/
+obj/
+.vs/
+.agents/
+*.user
+*.suo
+*.log
+
+# SAP .NET Connector runtime files are stored under libs/.
+cpc4n.dll
+ijwhost.dll
+sapnco.dll
+sapnco_utils.dll
+!libs/cpc4n.dll
+!libs/ijwhost.dll
+!libs/sapnco.dll
+!libs/sapnco_utils.dll
+
+# Local demo/runtime configuration.
+appsettings.json

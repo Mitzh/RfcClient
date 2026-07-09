@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PlatformTarget>x64</PlatformTarget>
+        <AssemblyName>RfcClient</AssemblyName>
+        <RootNamespace>RfcClient</RootNamespace>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageId>RfcClient</PackageId>
+        <Version>0.1.0</Version>
+        <Authors>mitzh</Authors>
+        <Company>mitzh.com</Company>
+        <Description>A DI-friendly SAP RFC client wrapper for SAP .NET Connector.</Description>
+        <PackageTags>SAP;RFC;NCo;DependencyInjection</PackageTags>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <LibPath Condition="'$(LibPath)' == ''">$(MSBuildProjectDirectory)\libs</LibPath>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="cpc4n">
+          <HintPath>$(LibPath)\cpc4n.dll</HintPath>
+        </Reference>
+        <Reference Include="sapnco">
+          <HintPath>$(LibPath)\sapnco.dll</HintPath>
+        </Reference>
+        <Reference Include="sapnco_utils">
+          <HintPath>$(LibPath)\sapnco_utils.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="README.md" Pack="true" PackagePath="\" />
+      <None Remove="docs\**\*.md" />
+      <None Include="docs\**\*.md" Pack="true" PackagePath="docs\" />
+      <None Include="libs\cpc4n.dll" Pack="true" PackagePath="lib\net10.0\" />
+      <None Include="libs\ijwhost.dll" Pack="true" PackagePath="lib\net10.0\" />
+      <None Include="libs\sapnco.dll" Pack="true" PackagePath="lib\net10.0\" />
+      <None Include="libs\sapnco_utils.dll" Pack="true" PackagePath="lib\net10.0\" />
+    </ItemGroup>
+
+    <Target Name="CopyNativeLibsToOutput" AfterTargets="AfterBuild">
+        <Copy SourceFiles="$(LibPath)\cpc4n.dll" DestinationFolder="$(OutDir)" />
+        <Copy SourceFiles="$(LibPath)\ijwhost.dll" DestinationFolder="$(OutDir)" />
+        <Copy SourceFiles="$(LibPath)\sapnco.dll" DestinationFolder="$(OutDir)" />
+        <Copy SourceFiles="$(LibPath)\sapnco_utils.dll" DestinationFolder="$(OutDir)" />
+    </Target>
+
+</Project>
