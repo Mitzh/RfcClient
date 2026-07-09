@@ -1,4 +1,4 @@
-# RfcClient 项目分析与维护指南
+﻿# RfcClient 项目分析与维护指南
 
 ## 项目概览
 
@@ -17,7 +17,7 @@
 
 ```text
 IRfcClient
-  -> ScopedRfcClient
+  -> RfcClient
   -> RfcSession
   -> IRfcDestinationRegistry
   -> RfcConnectionManager
@@ -28,7 +28,7 @@ IRfcClient
 
 - `RfcServiceCollectionExtensions`：注册依赖注入服务。
 - `IRfcClient`：暴露 `ConfigId` 和强类型 RFC 调用。
-- `ScopedRfcClient`：解析实际使用的 `ConfigId`，创建短生命周期 `RfcSession`，并委托执行调用。
+- `RfcClient`：解析实际使用的 `ConfigId`，创建短生命周期 `RfcSession`，并委托执行调用。
 - `RfcOptions`：校验配置并将连接字符串转换为 RFC 参数。
 - `RfcConfigProvider`：提供 RFC 连接配置，并应用连接清理参数。
 - `RfcDestinationRegistry`：注册和解析命名 SAP destination。
@@ -93,7 +93,7 @@ var response = _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(requ
 
 - 在 `IRfcClient` 上新增 `ConfigId`。
 - 移除之前面向 DI 的配置访问器和会话工厂服务。
-- 将实际 `ConfigId` 解析与 session 创建移动到 `ScopedRfcClient`。
+- 将实际 `ConfigId` 解析与 session 创建移动到 `RfcClient`。
 - 保留 `RfcSession` 作为每次调用的内部执行对象。
 
 项目中已有的维护内容还包括：
@@ -125,6 +125,6 @@ dotnet pack .\RfcClient.csproj -c Release
 
 - 保持目标框架、Microsoft.Extensions 依赖版本和 README 中的框架说明一致。
 - 连接字符串和密码属于敏感信息，不要记录完整连接字符串。
-- 扩展映射能力前，优先为 `RfcOptions`、`ScopedRfcClient` 和 `RfcTypeConverter` 增加单元测试。
+- 扩展映射能力前，优先为 `RfcOptions`、`RfcClient` 和 `RfcTypeConverter` 增加单元测试。
 - 如果需要支持旧版本业务系统，应评估多目标框架，而不是只修改 README 文档。
 - SAP NCo 文件具有平台相关性，发布前应确认目标系统上的运行时文件布局和架构一致。

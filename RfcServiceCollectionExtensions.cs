@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using RfcClient.Abstractions;
 
 namespace RfcClient;
@@ -11,6 +12,27 @@ namespace RfcClient;
 /// </summary>
 public static class RfcServiceCollectionExtensions
 {
+    /// <summary>
+    ///   注册 SAP RFC 客户端服务。
+    ///   自动从依赖注入容器中解析 IConfiguration 并绑定到 <see cref="RfcOptions"/>。
+    ///   适用于 ASP.NET Core 等已注册 IConfiguration 的宿主环境。
+    /// </summary>
+    /// <param name="services">IServiceCollection 服务集合。</param>
+    /// <returns>服务集合，支持链式调用。</returns>
+    public static IServiceCollection AddRfcClient(
+        this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddOptions<RfcOptions>()
+            .Configure<IConfiguration>((options, config) =>
+            {
+                config.Bind(options);
+            });
+
+        return AddRfcClientCore(services);
+    }
+
     /// <summary>
     ///   使用 IConfiguration 注册 SAP RFC 客户端服务。
     /// </summary>

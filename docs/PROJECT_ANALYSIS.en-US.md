@@ -1,4 +1,4 @@
-# RfcClient Project Analysis and Maintenance Guide
+﻿# RfcClient Project Analysis and Maintenance Guide
 
 ## Project Snapshot
 
@@ -17,7 +17,7 @@ Main runtime flow:
 
 ```text
 IRfcClient
-  -> ScopedRfcClient
+  -> RfcClient
   -> RfcSession
   -> IRfcDestinationRegistry
   -> RfcConnectionManager
@@ -28,7 +28,7 @@ Important components:
 
 - `RfcServiceCollectionExtensions`: registers the DI services.
 - `IRfcClient`: exposes `ConfigId` and typed RFC invocation.
-- `ScopedRfcClient`: resolves the effective `ConfigId`, creates a short-lived `RfcSession`, and delegates the call.
+- `RfcClient`: `IRfcClient` implementation, resolves the effective `ConfigId`, creates a short-lived `RfcSession`, and delegates the call.
 - `RfcOptions`: validates and converts configured connection strings.
 - `RfcConfigProvider`: exposes configured RFC destinations and applies cleanup settings.
 - `RfcDestinationRegistry`: registers and resolves named SAP destinations.
@@ -42,7 +42,10 @@ Important components:
 Register services:
 
 ```csharp
+// Option 1: pass configuration explicitly
 builder.Services.AddRfcClient(builder.Configuration);
+// Option 2: auto-resolve IConfiguration from the DI container
+builder.Services.AddRfcClient();
 ```
 
 Configure named connections:
@@ -81,31 +84,38 @@ public sealed class SupplyDemandService
 Switch the SAP configuration in the current scope:
 
 ```csharp
-_rfcClient.ConfigId = "Sap.JSY";
-var response = _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+client.ConfigId = "Sap.JSY";
+var response = client.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
 ```
 
 The request type must use `[Table("RFC_FUNCTION_NAME")]`; mapped request and response properties must use `[Column("SAP_FIELD_NAME")]`.
 
 ## Refactoring Applied
 
+Following changes were made in this maintenance pass:
+
+- Renamed `ScopedRfcClient` class to `RfcClient`; the source file was renamed accordingly.
+- Added a parameterless `AddRfcClient()` overload that auto-resolves `IConfiguration` from the DI container.
+- Added Chinese XML documentation comments to all public types, methods, and properties across the project; enabled `GenerateDocumentationFile` to emit the doc XML file.
+- Restructured build output: SAP NCo runtime DLLs are now copied to the output root directly; the `libs\` subdirectory under the output is no longer created.
+
 This maintenance pass changed the scoped configuration API:
 
 - Added `ConfigId` to `IRfcClient`.
 - Removed the previous DI-facing scoped config accessor and session factory services.
-- Moved effective `ConfigId` resolution and session creation into `ScopedRfcClient`.
+- Moved effective `ConfigId` resolution and session creation into `RfcClient`.
 - Kept `RfcSession` as the internal per-call execution object.
 
 Existing maintenance work in the project also includes:
 
-- Extracted shared request metadata and validation into `RfcRequestMetadata`.
-- Reused centralized request metadata from `RfcSession`.
-- Fixed `AddRfcClient(RfcOptions)` so cleanup settings are copied.
-- Added duplicate and missing `ConfigId` validation in `RfcOptions`.
-- Added validation for invalid cleanup intervals in `RfcConnectionManager`.
-- Simplified idle destination cleanup and destination cache creation.
-- Removed duplicate RFC value conversion switches in `RfcTypeConverter`.
-- Updated README target framework and package runtime path documentation.
+- Extracted shared request metadata and validation into `RfcRequestMetadata`
+- Reused centralized request metadata from `RfcSession`
+- Fixed `AddRfcClient(RfcOptions)` so cleanup settings are copied
+- Added duplicate and missing `ConfigId` validation in `RfcOptions`
+- Added validation for invalid cleanup intervals in `RfcConnectionManager`
+- Simplified idle destination cleanup and destination cache creation
+- Removed duplicate RFC value conversion switches in `RfcTypeConverter`
+- Updated README target framework and package runtime path documentation
 
 ## Build And Verification
 
@@ -125,6 +135,6 @@ dotnet pack .\RfcClient.csproj -c Release
 
 - Keep the target framework, Microsoft.Extensions package versions, and README framework text in sync.
 - Treat connection strings and passwords as secrets; do not log full connection strings.
-- Prefer adding tests around `RfcOptions`, `ScopedRfcClient`, and `RfcTypeConverter` before expanding supported mapping scenarios.
+- Prefer adding tests around `RfcOptions`, `RfcClient`, and `RfcTypeConverter` before expanding supported mapping scenarios.
 - If the library must support older applications, evaluate retargeting or multi-targeting instead of only changing README text.
 - SAP NCo files are platform-specific. Keep package/runtime layout explicit and verify on the deployment OS.

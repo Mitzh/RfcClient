@@ -1,4 +1,4 @@
-# RfcClient File Dependency Roadmap
+﻿# RfcClient File Dependency Roadmap
 
 Generated on: 2026-07-09
 
@@ -25,7 +25,7 @@ The current public entry point is:
 ## 3. Top-Level Source Map
 
 ```text
-ScopedRfcClient/
+RfcClient/
 ├─ RfcClient.csproj
 ├─ RfcClient.sln
 ├─ README.md
@@ -35,7 +35,7 @@ ScopedRfcClient/
 │  ├─ IRfcDestinationRegistry.cs
 │  └─ IRfcConnectionMonitor.cs
 ├─ RfcServiceCollectionExtensions.cs
-├─ ScopedRfcClient.cs
+├─ RfcClient.cs
 ├─ RfcSession.cs
 ├─ RfcOptions.cs
 ├─ RfcConfigProvider.cs
@@ -54,7 +54,7 @@ ScopedRfcClient/
 flowchart TD
     A["Business code / Consumer"] --> B["IRfcClient"]
     B --> C["Set or read IRfcClient.ConfigId"]
-    B --> D["ScopedRfcClient.Invoke"]
+    B --> D["RfcClient.Invoke"]
     D --> E{"Is ConfigId empty?"}
     E -- "No" --> F["Use IRfcClient.ConfigId"]
     E -- "Yes" --> G["IRfcConfigProvider.GetDefaultConfigId"]
@@ -112,15 +112,15 @@ flowchart LR
 | `RfcClient.csproj` | Defines the class library, target framework, SAP NCo DLL references, Microsoft.Extensions packages, and package metadata | `libs/*.dll`, `Microsoft.Extensions.*` | `RfcClient.sln`, build tooling |
 | `RfcClient.sln` | Visual Studio solution entry point | `RfcClient.csproj` | IDE / build tooling |
 | `README.md` | User guide, configuration examples, model examples, build and pack instructions | Public project APIs | Users and maintainers |
-| `Abstractions/IRfcClient.cs` | Main public invocation interface with `ConfigId` and `Invoke` | No internal dependency | `ScopedRfcClient`, business code |
-| `Abstractions/IRfcConfigProvider.cs` | Provides default config ID and resolved RFC configuration parameters | `RfcConfigParameter` | `RfcConfigProvider`, `ScopedRfcClient`, `RfcDestinationRegistry` |
+| `Abstractions/IRfcClient.cs` | Main public invocation interface with `ConfigId` and `Invoke` | No internal dependency | `RfcClient`, business code |
+| `Abstractions/IRfcConfigProvider.cs` | Provides default config ID and resolved RFC configuration parameters | `RfcConfigParameter` | `RfcConfigProvider`, `RfcClient`, `RfcDestinationRegistry` |
 | `Abstractions/IRfcDestinationRegistry.cs` | Abstracts destination lookup and config queries | `RfcDestination`, `RfcConfigParameter` | `RfcDestinationRegistry`, `RfcSession` |
 | `Abstractions/IRfcConnectionMonitor.cs` | Exposes destination and invocation lifecycle callbacks | `RfcDestinationResolvedContext`, `RfcInvocationContext` | `RfcConnectionMonitor`, `RfcDestinationRegistry`, `RfcSession` |
-| `RfcServiceCollectionExtensions.cs` | DI registration entry point with three `AddRfcClient` overloads | `IConfiguration`, `IServiceCollection`, abstractions, implementations | Application startup code |
-| `ScopedRfcClient.cs` | Scoped `IRfcClient` implementation; resolves `ConfigId` and creates a short-lived `RfcSession` | `IRfcDestinationRegistry`, `IRfcConfigProvider`, `IRfcConnectionMonitor`, `RfcSession` | Registered as `IRfcClient` |
-| `RfcSession.cs` | Internal execution object for one RFC call: metadata lookup, validation, destination lookup, function invocation, monitoring callbacks, exception wrapping | `IRfcDestinationRegistry`, `IRfcConnectionMonitor`, `RfcRequestMetadata`, `RfcTypeConverter`, SAP NCo, `IDisposable` | `ScopedRfcClient` |
+| `RfcServiceCollectionExtensions.cs` | DI registration entry point with four `AddRfcClient` overloads | `IConfiguration`, `IServiceCollection`, abstractions, implementations | Application startup code |
+| `RfcClient.cs` | Scoped `IRfcClient` implementation; resolves `ConfigId` and creates a short-lived `RfcSession` | `IRfcDestinationRegistry`, `IRfcConfigProvider`, `IRfcConnectionMonitor`, `RfcSession` | Registered as `IRfcClient` |
+| `RfcSession.cs` | Internal execution object for one RFC call: metadata lookup, validation, destination lookup, function invocation, monitoring callbacks, exception wrapping | `IRfcDestinationRegistry`, `IRfcConnectionMonitor`, `RfcRequestMetadata`, `RfcTypeConverter`, SAP NCo, `IDisposable` | `RfcClient` |
 | `RfcOptions.cs` | Stores config list, default-config logic, and connection-string parsing entry point | `DbConnectionStringBuilder`, `RfcConfigParameter` | `RfcConfigProvider`, DI options |
-| `RfcConfigProvider.cs` | Adapts `IOptions<RfcOptions>` to config-provider abstraction and configures connection cleanup | `RfcOptions`, `RfcConnectionManager.ConfigureCleanup` | `ScopedRfcClient`, `RfcDestinationRegistry` |
+| `RfcConfigProvider.cs` | Adapts `IOptions<RfcOptions>` to config-provider abstraction and configures connection cleanup | `RfcOptions`, `RfcConnectionManager.ConfigureCleanup` | `RfcClient`, `RfcDestinationRegistry` |
 | `RfcConfigParameter.cs` | SAP RFC connection parameter data structure | No internal dependency | `RfcOptions`, `RfcConnectionManager`, monitoring contexts |
 | `RfcDestinationRegistry.cs` | Registers all configured destinations and wraps destination lookup with monitoring | `IRfcConfigProvider`, `IRfcConnectionMonitor`, `RfcConnectionManager` | `RfcSession` |
 | `RfcConnectionManager.cs` | Process-wide SAP destination registration, caching, cleanup, and NCo `IDestinationConfiguration` implementation | SAP NCo, `RfcConfigParameter`, `Timer`, concurrent dictionaries | `RfcDestinationRegistry`, `RfcConfigProvider` |
@@ -138,7 +138,7 @@ flowchart LR
 | `IRfcConnectionMonitor` | `RfcConnectionMonitor` | Singleton | Default no-op implementation; callers may register their own monitor first |
 | `IRfcConfigProvider` | `RfcConfigProvider` | Singleton | Reads options and configures cleanup settings |
 | `IRfcDestinationRegistry` | `RfcDestinationRegistry` | Singleton | Registers all destinations during construction |
-| `IRfcClient` | `ScopedRfcClient` | Scoped | Main business-code entry point; owns the current scoped `ConfigId` |
+| `IRfcClient` | `RfcClient` | Scoped | Main business-code entry point; owns the current scoped `ConfigId` |
 
 ## 9. Key Runtime Paths
 
@@ -158,9 +158,9 @@ flowchart LR
 1. Business code injects `IRfcClient`.
 2. Optional: set `_rfcClient.ConfigId = "Sap.JSY"`.
 3. It calls `Invoke<TIn,TOut>(input, forceNew)`.
-4. `ScopedRfcClient` first uses its own `ConfigId`.
+4. `RfcClient` first uses its own `ConfigId`.
 5. If `ConfigId` is empty, it uses `IRfcConfigProvider.GetDefaultConfigId()`.
-6. `ScopedRfcClient` creates `RfcSession`.
+6. `RfcClient` creates `RfcSession`.
 7. `RfcSession` reads the RFC function name, validates input, resolves the destination, invokes SAP RFC, and converts the response.
 8. On success, it raises `InvocationSucceeded`; on failure, it raises `InvocationFailed`.
 9. It returns the typed response `TOut`.
@@ -171,12 +171,12 @@ flowchart LR
 flowchart LR
     A["HTTP middleware / Controller / Worker scope"] --> B["IRfcClient.ConfigId = 'Sap.JSY'"]
     B --> C["IRfcClient.Invoke"]
-    C --> D["ScopedRfcClient reads ConfigId"]
+    C --> D["RfcClient reads ConfigId"]
     D --> E["new RfcSession('Sap.JSY', ...)"]
     E --> F["Invoke RFC through Sap.JSY destination"]
 ```
 
-`IRfcClient` is scoped, so the same request scope resolves the same `ScopedRfcClient` instance. After setting `ConfigId`, subsequent calls use that config; setting it to an empty string returns the scope to the default config.
+`IRfcClient` is scoped, so the same request scope resolves the same `RfcClient` instance. After setting `ConfigId`, subsequent calls use that config; setting it to an empty string returns the scope to the default config.
 
 ## 10. Runtime State and Caching
 
@@ -204,7 +204,7 @@ When `forceNew = true`, `RfcConnectionManager.GetDestination` removes the cached
 1. `README.md`
 2. `RfcServiceCollectionExtensions.cs`
 3. `Abstractions/IRfcClient.cs`
-4. `ScopedRfcClient.cs`
+4. `RfcClient.cs`
 5. `RfcSession.cs`
 6. `RfcDestinationRegistry.cs`
 7. `RfcConnectionManager.cs`
@@ -214,4 +214,4 @@ When `forceNew = true`, `RfcConnectionManager.GetDestination` removes the cached
 
 ## 13. One-Sentence Architecture Summary
 
-The main project line is: `DI registration -> IRfcClient owns scoped ConfigId -> ScopedRfcClient creates RfcSession -> SAP Destination lookup/cache -> attribute-based SAP RFC invocation -> typed response conversion -> monitor lifecycle callbacks`.
+The main project line is: `DI registration -> IRfcClient owns scoped ConfigId -> RfcClient creates RfcSession -> SAP Destination lookup/cache -> attribute-based SAP RFC invocation -> typed response conversion -> monitor lifecycle callbacks`.

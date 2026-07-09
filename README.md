@@ -360,6 +360,7 @@ libs/sapnco_utils.dll
 These files are copied to the build output and included in the NuGet package under `lib/net10.0/`.
 
 Configuration options: the library exposes two timing options in `RfcOptions`:
+
 - `CleanupInterval` (default `00:05:00`): how often the client checks for idle destinations to cleanup.
 - `DestinationIdleTimeout` (default `00:10:00`): how long a destination can stay unused before being removed from the cache.
 

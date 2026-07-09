@@ -1,4 +1,4 @@
-# RfcClient 文件调用依赖路线图
+﻿# RfcClient 文件调用依赖路线图
 
 生成日期：2026-07-09
 
@@ -25,7 +25,7 @@
 ## 3. 顶层源码地图
 
 ```text
-ScopedRfcClient/
+RfcClient/
 ├─ RfcClient.csproj
 ├─ RfcClient.sln
 ├─ README.md
@@ -35,7 +35,7 @@ ScopedRfcClient/
 │  ├─ IRfcDestinationRegistry.cs
 │  └─ IRfcConnectionMonitor.cs
 ├─ RfcServiceCollectionExtensions.cs
-├─ ScopedRfcClient.cs
+├─ RfcClient.cs
 ├─ RfcSession.cs
 ├─ RfcOptions.cs
 ├─ RfcConfigProvider.cs
@@ -54,7 +54,7 @@ ScopedRfcClient/
 flowchart TD
     A["业务代码 / Consumer"] --> B["IRfcClient"]
     B --> C["设置或读取 IRfcClient.ConfigId"]
-    B --> D["ScopedRfcClient.Invoke"]
+    B --> D["RfcClient.Invoke"]
     D --> E{"ConfigId 是否为空"}
     E -- "不为空" --> F["使用 IRfcClient.ConfigId"]
     E -- "为空" --> G["IRfcConfigProvider.GetDefaultConfigId"]
@@ -112,15 +112,15 @@ flowchart LR
 | `RfcClient.csproj` | 定义类库、目标框架、SAP NCo DLL 引用、Microsoft.Extensions 包引用和打包配置 | `libs/*.dll`、`Microsoft.Extensions.*` | `RfcClient.sln`、构建工具 |
 | `RfcClient.sln` | Visual Studio 解决方案入口 | `RfcClient.csproj` | IDE / 构建工具 |
 | `README.md` | 用户使用说明、配置示例、模型示例、构建打包说明 | 项目公开 API | 使用者和维护者 |
-| `Abstractions/IRfcClient.cs` | 对外主调用接口，包含 `ConfigId` 和 `Invoke` | 无项目内依赖 | `ScopedRfcClient`、业务代码 |
-| `Abstractions/IRfcConfigProvider.cs` | 提供默认配置 ID 与配置参数 | `RfcConfigParameter` | `RfcConfigProvider`、`ScopedRfcClient`、`RfcDestinationRegistry` |
+| `Abstractions/IRfcClient.cs` | 对外主调用接口，包含 `ConfigId` 和 `Invoke` | 无项目内依赖 | `RfcClient`、业务代码 |
+| `Abstractions/IRfcConfigProvider.cs` | 提供默认配置 ID 与配置参数 | `RfcConfigParameter` | `RfcConfigProvider`、`RfcClient`、`RfcDestinationRegistry` |
 | `Abstractions/IRfcDestinationRegistry.cs` | 抽象 destination 获取与配置查询 | `RfcDestination`、`RfcConfigParameter` | `RfcDestinationRegistry`、`RfcSession` |
 | `Abstractions/IRfcConnectionMonitor.cs` | 暴露连接解析和调用生命周期监控点 | `RfcDestinationResolvedContext`、`RfcInvocationContext` | `RfcConnectionMonitor`、`RfcDestinationRegistry`、`RfcSession` |
-| `RfcServiceCollectionExtensions.cs` | DI 注册入口，提供三个 `AddRfcClient` 重载 | `IConfiguration`、`IServiceCollection`、抽象接口和实现类 | 应用启动代码 |
-| `ScopedRfcClient.cs` | scoped `IRfcClient` 实现；解析 `ConfigId` 并创建短生命周期 `RfcSession` | `IRfcDestinationRegistry`、`IRfcConfigProvider`、`IRfcConnectionMonitor`、`RfcSession` | DI 注册为 `IRfcClient` |
-| `RfcSession.cs` | 内部执行对象，执行一次 RFC 调用，包含元数据解析、校验、destination 获取、function 调用、监控回调和异常包装 | `IRfcDestinationRegistry`、`IRfcConnectionMonitor`、`RfcRequestMetadata`、`RfcTypeConverter`、SAP NCo、`IDisposable` | `ScopedRfcClient` |
+| `RfcServiceCollectionExtensions.cs` | DI 注册入口，提供四个 `AddRfcClient` 重载 | `IConfiguration`、`IServiceCollection`、抽象接口和实现类 | 应用启动代码 |
+| `RfcClient.cs` | scoped `IRfcClient` 实现；解析 `ConfigId` 并创建短生命周期 `RfcSession` | `IRfcDestinationRegistry`、`IRfcConfigProvider`、`IRfcConnectionMonitor`、`RfcSession` | DI 注册为 `IRfcClient` |
+| `RfcSession.cs` | 内部执行对象，执行一次 RFC 调用，包含元数据解析、校验、destination 获取、function 调用、监控回调和异常包装 | `IRfcDestinationRegistry`、`IRfcConnectionMonitor`、`RfcRequestMetadata`、`RfcTypeConverter`、SAP NCo、`IDisposable` | `RfcClient` |
 | `RfcOptions.cs` | 保存配置列表、默认配置逻辑、连接字符串解析入口 | `DbConnectionStringBuilder`、`RfcConfigParameter` | `RfcConfigProvider`、DI options |
-| `RfcConfigProvider.cs` | 将 `IOptions<RfcOptions>` 适配为配置提供者，并配置连接清理参数 | `RfcOptions`、`RfcConnectionManager.ConfigureCleanup` | `ScopedRfcClient`、`RfcDestinationRegistry` |
+| `RfcConfigProvider.cs` | 将 `IOptions<RfcOptions>` 适配为配置提供者，并配置连接清理参数 | `RfcOptions`、`RfcConnectionManager.ConfigureCleanup` | `RfcClient`、`RfcDestinationRegistry` |
 | `RfcConfigParameter.cs` | SAP RFC 连接参数数据结构 | 无项目内依赖 | `RfcOptions`、`RfcConnectionManager`、监控上下文 |
 | `RfcDestinationRegistry.cs` | 注册所有配置到连接管理器，并包装 destination 获取与监控 | `IRfcConfigProvider`、`IRfcConnectionMonitor`、`RfcConnectionManager` | `RfcSession` |
 | `RfcConnectionManager.cs` | 进程级 SAP destination 注册、缓存、清理和 NCo `IDestinationConfiguration` 实现 | SAP NCo、`RfcConfigParameter`、`Timer`、并发字典 | `RfcDestinationRegistry`、`RfcConfigProvider` |
@@ -138,7 +138,7 @@ flowchart LR
 | `IRfcConnectionMonitor` | `RfcConnectionMonitor` | Singleton | 默认空实现，用户可提前注册自己的实现 |
 | `IRfcConfigProvider` | `RfcConfigProvider` | Singleton | 从 options 读取配置，并配置连接清理参数 |
 | `IRfcDestinationRegistry` | `RfcDestinationRegistry` | Singleton | 构造时注册所有 destination |
-| `IRfcClient` | `ScopedRfcClient` | Scoped | 业务代码注入的主入口，持有当前 scope 的 `ConfigId` |
+| `IRfcClient` | `RfcClient` | Scoped | 业务代码注入的主入口，持有当前 scope 的 `ConfigId` |
 
 ## 9. 关键运行路径
 
@@ -158,9 +158,9 @@ flowchart LR
 1. 业务类注入 `IRfcClient`。
 2. 可选：设置 `_rfcClient.ConfigId = "Sap.JSY"`。
 3. 调用 `Invoke<TIn,TOut>(input, forceNew)`。
-4. `ScopedRfcClient` 优先使用自身 `ConfigId`。
+4. `RfcClient` 优先使用自身 `ConfigId`。
 5. 如果 `ConfigId` 为空，则使用 `IRfcConfigProvider.GetDefaultConfigId()`。
-6. `ScopedRfcClient` 创建 `RfcSession`。
+6. `RfcClient` 创建 `RfcSession`。
 7. `RfcSession` 读取 RFC function 名、校验输入、获取 destination、执行 SAP RFC、转换响应。
 8. 成功时通知 `InvocationSucceeded`；失败时通知 `InvocationFailed`。
 9. 返回响应对象 `TOut`。
@@ -171,12 +171,12 @@ flowchart LR
 flowchart LR
     A["HTTP middleware / Controller / Worker scope"] --> B["IRfcClient.ConfigId = 'Sap.JSY'"]
     B --> C["IRfcClient.Invoke"]
-    C --> D["ScopedRfcClient 读取 ConfigId"]
+    C --> D["RfcClient 读取 ConfigId"]
     D --> E["new RfcSession('Sap.JSY', ...)"]
     E --> F["使用 Sap.JSY destination 调用 RFC"]
 ```
 
-`IRfcClient` 是 scoped 生命周期，所以同一个请求 scope 中解析到的是同一个 `ScopedRfcClient` 实例。设置 `ConfigId` 后，后续调用会使用该配置；将其设为空字符串可回到默认配置。
+`IRfcClient` 是 scoped 生命周期，所以同一个请求 scope 中解析到的是同一个 `RfcClient` 实例。设置 `ConfigId` 后，后续调用会使用该配置；将其设为空字符串可回到默认配置。
 
 ## 10. 运行时状态与缓存
 
@@ -204,7 +204,7 @@ flowchart LR
 1. `README.md`
 2. `RfcServiceCollectionExtensions.cs`
 3. `Abstractions/IRfcClient.cs`
-4. `ScopedRfcClient.cs`
+4. `RfcClient.cs`
 5. `RfcSession.cs`
 6. `RfcDestinationRegistry.cs`
 7. `RfcConnectionManager.cs`
@@ -214,4 +214,4 @@ flowchart LR
 
 ## 13. 一句话架构总结
 
-这个项目的主线是：`DI 注册 -> IRfcClient 持有 scope 内 ConfigId -> ScopedRfcClient 创建 RfcSession -> 获取/缓存 SAP Destination -> 通过属性映射调用 SAP RFC -> 将输出转换成 typed response -> 通过 monitor 暴露调用生命周期`。
+这个项目的主线是：`DI 注册 -> IRfcClient 持有 scope 内 ConfigId -> RfcClient 创建 RfcSession -> 获取/缓存 SAP Destination -> 通过属性映射调用 SAP RFC -> 将输出转换成 typed response -> 通过 monitor 暴露调用生命周期`。
