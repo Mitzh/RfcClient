@@ -1,4 +1,4 @@
-namespace RfcClient.Abstractions;
+namespace mitzh.Abstractions;
 
 /// <summary>
 ///   SAP RFC 客户端接口。
@@ -12,16 +12,13 @@ public interface IRfcClient
     string ConfigId { get; set; }
 
     /// <summary>
-    ///   调用远程 SAP RFC 函数并获取返回值。
+    ///   调用远程 SAP RFC 函数，输入可为请求类或字典。
     /// </summary>
-    /// <typeparam name="TIn">请求参数的类型，必须为类类型。</typeparam>
     /// <typeparam name="TOut">响应结果的类型，必须包含无参构造函数。</typeparam>
-    /// <param name="input">请求参数对象。</param>
-    /// <param name="forceNew">
-    ///   是否强制使用新的连接目标（绕过缓存）。默认值为 false。
-    /// </param>
+    /// <param name="input">请求类或字典。字典键作为 SAP RFC 参数名。</param>
+    /// <param name="functionName">RFC 函数名。字典输入时必填；类输入时优先于 TableAttribute。</param>
+    /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。</param>
     /// <returns>RFC 调用返回的结果对象。</returns>
-    TOut Invoke<TIn, TOut>(TIn input, bool forceNew = false)
-        where TIn : class
+    TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false)
         where TOut : new();
 }

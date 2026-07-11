@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 请求元数据工具类。
@@ -18,12 +18,17 @@ internal static class RfcRequestMetadata
     /// <exception cref="InvalidOperationException">当请求类型未定义 TableAttribute 或其名称为空时引发。</exception>
     public static string GetFunctionName<TIn>()
         where TIn : class
+        => GetFunctionName(typeof(TIn));
+
+    public static string GetFunctionName(Type inputType)
     {
-        var functionName = typeof(TIn).GetCustomAttribute<TableAttribute>()?.Name;
+        ArgumentNullException.ThrowIfNull(inputType);
+
+        var functionName = inputType.GetCustomAttribute<TableAttribute>()?.Name;
         if (string.IsNullOrWhiteSpace(functionName))
         {
             throw new InvalidOperationException(
-                $"Request type '{typeof(TIn).FullName}' must define a TableAttribute with the RFC function name.");
+                $"Request type '{inputType.FullName}' must define a TableAttribute with the RFC function name.");
         }
 
         return functionName;
@@ -37,6 +42,9 @@ internal static class RfcRequestMetadata
     /// <param name="input">要验证的请求参数对象。</param>
     public static void Validate<TIn>(TIn input)
         where TIn : class
+        => Validate((object)input);
+
+    public static void Validate(object input)
     {
         ArgumentNullException.ThrowIfNull(input);
 

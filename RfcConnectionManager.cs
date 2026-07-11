@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using SAP.Middleware.Connector;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 连接管理器。

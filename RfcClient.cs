@@ -1,6 +1,8 @@
-﻿using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
-namespace RfcClient;
+using Microsoft.Extensions.Options;
+
+namespace mitzh;
 
 /// <summary>
 ///   SAP RFC 客户端的作用域实现。
@@ -9,9 +11,18 @@ namespace RfcClient;
 /// </summary>
 public class RfcClient : IRfcClient
 {
-    private readonly IRfcDestinationRegistry _destinationRegistry;
-    private readonly IRfcConfigProvider _configProvider;
-    private readonly IRfcConnectionMonitor _monitor;
+    private IRfcDestinationRegistry _destinationRegistry;
+    private IRfcConfigProvider _configProvider;
+    private IRfcConnectionMonitor _monitor;
+    private bool _hasCustomDestinationRegistry;
+
+    /// <summary>
+    ///   初始化 <see cref="RfcClient"/> 类的新实例。
+    ///   依赖项可通过属性注入；未注入时将使用项目内的默认实现。
+    /// </summary>
+    public RfcClient()
+    {
+    }
 
     /// <summary>
     ///   初始化 <see cref="RfcClient"/> 类的新实例。
@@ -31,6 +42,49 @@ public class RfcClient : IRfcClient
         _destinationRegistry = destinationRegistry;
         _configProvider = configProvider;
         _monitor = monitor;
+        _hasCustomDestinationRegistry = true;
+    }
+
+    /// <summary>
+    ///   获取或设置 RFC 连接监视器。未设置时使用 <see cref="RfcConnectionMonitor"/>。
+    /// </summary>
+    public IRfcConnectionMonitor ConnectionMonitor
+    {
+        get => _monitor ??= new RfcConnectionMonitor();
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _monitor = value;
+            ResetDefaultDestinationRegistry();
+        }
+    }
+
+    /// <summary>
+    ///   获取或设置 RFC 配置提供程序。未设置时使用基于空配置的 <see cref="RfcConfigProvider"/>。
+    /// </summary>
+    public IRfcConfigProvider ConfigProvider
+    {
+        get => _configProvider ??= new RfcConfigProvider(Options.Create(new RfcOptions()));
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _configProvider = value;
+            ResetDefaultDestinationRegistry();
+        }
+    }
+
+    /// <summary>
+    ///   获取或设置 RFC 目标注册表。未设置时使用 <see cref="RfcDestinationRegistry"/>。
+    /// </summary>
+    public IRfcDestinationRegistry DestinationRegistry
+    {
+        get => _destinationRegistry ??= new RfcDestinationRegistry(ConfigProvider, ConnectionMonitor);
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _destinationRegistry = value;
+            _hasCustomDestinationRegistry = true;
+        }
     }
 
     /// <summary>
@@ -41,30 +95,34 @@ public class RfcClient : IRfcClient
     public string ConfigId { get; set; } = string.Empty;
 
     /// <summary>
-    ///   调用远程 SAP RFC 函数并获取返回值。
-    ///   如果未设置 ConfigId，将自动使用默认配置标识。
-    ///   如果 ConfigId 未找到对应的注册目标，也会回退到默认配置。
+    ///   调用远程 SAP RFC 函数，输入可为请求类或字典。
     /// </summary>
-    /// <typeparam name="TIn">请求参数的类型，必须为类类型。</typeparam>
     /// <typeparam name="TOut">响应结果的类型，必须包含无参构造函数。</typeparam>
-    /// <param name="input">请求参数对象。</param>
-    /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。默认值为 false。</param>
+    /// <param name="input">请求类或字典。字典键作为 SAP RFC 参数名。</param>
+    /// <param name="functionName">RFC 函数名。字典输入时必填；类输入时优先于 TableAttribute。</param>
+    /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。</param>
     /// <returns>RFC 调用返回的结果对象。</returns>
-    public TOut Invoke<TIn, TOut>(TIn input, bool forceNew = false)
-        where TIn : class
+    public TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false)
         where TOut : new()
     {
         var configId = string.IsNullOrWhiteSpace(ConfigId)
-            ? _configProvider.GetDefaultConfigId()
+            ? ConfigProvider.GetDefaultConfigId()
             : ConfigId;
 
-        // 如果指定的 ConfigId 未注册，回退到默认配置
         if (!string.IsNullOrWhiteSpace(configId) && !RfcConnectionManager.IsDestinationRegistered(configId))
         {
-            configId = _configProvider.GetDefaultConfigId();
+            configId = ConfigProvider.GetDefaultConfigId();
         }
 
-        using var session = new RfcSession(configId, _destinationRegistry, _monitor);
-        return session.Invoke<TIn, TOut>(input, forceNew);
+        using var session = new RfcSession(configId, DestinationRegistry, ConnectionMonitor);
+        return session.Invoke<TOut>(input, functionName, forceNew);
+    }
+
+    private void ResetDefaultDestinationRegistry()
+    {
+        if (!_hasCustomDestinationRegistry)
+        {
+            _destinationRegistry = null;
+        }
     }
 }

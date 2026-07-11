@@ -1,4 +1,4 @@
-﻿# RfcClient
+# RfcClient
 
 `RfcClient` is a DI-friendly SAP RFC client wrapper for SAP .NET Connector.
 
@@ -81,7 +81,7 @@ MessageServerPort
 Register the client with `IServiceCollection`. Pass the configuration explicitly, or let it auto-resolve `IConfiguration` from the DI container:
 
 ```csharp
-using RfcClient;
+using mitzh;
 
 // Option 1: pass configuration explicitly
 builder.Services.AddRfcClient(builder.Configuration);
@@ -100,7 +100,7 @@ builder.Services.AddRfcClient(
 Programmatic registration is also supported:
 
 ```csharp
-using RfcClient;
+using mitzh;
 
 builder.Services.AddRfcClient(options =>
 {
@@ -112,6 +112,43 @@ builder.Services.AddRfcClient(options =>
     });
 });
 ```
+
+The public namespaces are `mitzh` and `mitzh.Abstractions`.
+
+### Autofac Module registration
+
+`RfcClient` supports constructor injection and Autofac property injection. When the three dependency properties are not supplied, the built-in implementations are created lazily.
+
+```csharp
+using Autofac;
+using mitzh;
+using mitzh.Abstractions;
+
+public sealed class RfcModule : Module
+{
+    protected override void Load(ContainerBuilder builder)
+    {
+        builder.RegisterType<RfcConnectionMonitor>()
+            .As<IRfcConnectionMonitor>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcConfigProvider>()
+            .As<IRfcConfigProvider>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcDestinationRegistry>()
+            .As<IRfcDestinationRegistry>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcClient>()
+            .As<IRfcClient>()
+            .PropertiesAutowired()
+            .InstancePerLifetimeScope();
+    }
+}
+```
+
+`RfcConfigProvider` requires `IOptions<RfcOptions>`. Register configured options in the Autofac container, or replace `ConfigProvider` with a custom implementation.
 
 ## Define RFC Models
 
@@ -174,7 +211,7 @@ public class SupplyDemandRow
 Inject `IRfcClient` and invoke the RFC with typed request/response models:
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 public class SupplyDemandService
 {
@@ -195,12 +232,32 @@ public class SupplyDemandService
             Source = "C"
         };
 
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
 
 `IRfcClient` exposes a scoped `ConfigId` property. If `ConfigId` is empty, the client uses the config marked with `IsDefault=true`. If no config is marked as default, it uses the first item in `RfcConnectionConfigs`.
+
+The current invocation API is:
+
+```csharp
+TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false);
+```
+
+- For a class input, an explicit `functionName` takes precedence over its `[Table]` attribute.
+- For a dictionary input, `functionName` is required and dictionary keys are used as RFC parameter names.
+- Set `forceNew` to `true` to bypass the cached destination.
+
+```csharp
+var response = _rfcClient.Invoke<SupplyDemandResponse>(
+    new Dictionary<string, object>
+    {
+        ["IV_MATNR"] = "B0505XT-1WR3",
+        ["IV_BUKRS"] = "1100"
+    },
+    functionName: "ZFM_MM039");
+```
 
 ## Switch ConfigId Per Request
 
@@ -209,7 +266,7 @@ Set `IRfcClient.ConfigId` inside the current request scope. After that, all `IRf
 Example middleware:
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 app.Use(async (context, next) =>
 {
@@ -229,7 +286,7 @@ Example controller:
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 [ApiController]
 [Route("api/supply-demand")]
@@ -245,7 +302,7 @@ public class SupplyDemandController : ControllerBase
     [HttpPost]
     public ActionResult<SupplyDemandResponse> Query(SupplyDemandRequest request)
     {
-        var response = _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
         return Ok(response);
     }
 }
@@ -262,7 +319,7 @@ X-Sap-Rfc-ConfigId: Sap.JSY
 Set `IRfcClient.ConfigId` before invoking when you need explicit control over the RFC config:
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 public class ManualRfcService
 {
@@ -276,7 +333,7 @@ public class ManualRfcService
     public SupplyDemandResponse QueryWithJsy(SupplyDemandRequest request)
     {
         _rfcClient.ConfigId = "Sap.JSY";
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
@@ -289,8 +346,8 @@ Implement `IRfcConnectionMonitor` to observe resolved destinations and RFC invoc
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using RfcClient;
-using RfcClient.Abstractions;
+using mitzh;
+using mitzh.Abstractions;
 
 public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 {
@@ -343,7 +400,7 @@ public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 Register the monitor before or after `AddRfcClient`:
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 builder.Services.AddSingleton<IRfcConnectionMonitor, LoggingRfcConnectionMonitor>();
 builder.Services.AddRfcClient(builder.Configuration);

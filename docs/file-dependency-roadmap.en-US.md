@@ -1,4 +1,4 @@
-﻿# RfcClient File Dependency Roadmap
+# RfcClient File Dependency Roadmap
 
 Generated on: 2026-07-09
 
@@ -17,10 +17,12 @@ This roadmap is based on the repository source files, project file, solution fil
 
 `RfcClient` is a dependency-injection-friendly SAP RFC client wrapper. It packages SAP .NET Connector destination registration, destination caching, RFC function creation, request/response mapping, and invocation monitoring behind a scoped `IRfcClient`.
 
+The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports both constructor injection and Autofac Module property injection.
+
 The current public entry point is:
 
 - `IRfcClient.ConfigId`: the current scoped SAP RFC config ID. Empty means the default configured destination is used.
-- `IRfcClient.Invoke<TIn,TOut>(...)`: executes a typed RFC call.
+- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`: executes a typed RFC call.
 
 ## 3. Top-Level Source Map
 
@@ -157,7 +159,7 @@ flowchart LR
 
 1. Business code injects `IRfcClient`.
 2. Optional: set `_rfcClient.ConfigId = "Sap.JSY"`.
-3. It calls `Invoke<TIn,TOut>(input, forceNew)`.
+3. It calls `Invoke<TOut>(input, functionName, forceNew)`.
 4. `RfcClient` first uses its own `ConfigId`.
 5. If `ConfigId` is empty, it uses `IRfcConfigProvider.GetDefaultConfigId()`.
 6. `RfcClient` creates `RfcSession`.

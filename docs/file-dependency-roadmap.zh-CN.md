@@ -1,4 +1,4 @@
-﻿# RfcClient 文件调用依赖路线图
+# RfcClient 文件调用依赖路线图
 
 生成日期：2026-07-09
 
@@ -17,10 +17,12 @@
 
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库。它将 SAP .NET Connector 的 destination 注册、连接缓存、RFC function 创建、请求/响应映射和调用监控包装成一个 scoped `IRfcClient`。
 
+公开命名空间为 `mitzh`，接口命名空间为 `mitzh.Abstractions`。客户端既支持构造函数注入，也支持 Autofac Module 的属性注入。
+
 当前对外主入口是：
 
 - `IRfcClient.ConfigId`：当前 scope 内的 SAP RFC 配置 ID。为空时使用默认配置。
-- `IRfcClient.Invoke<TIn,TOut>(...)`：执行强类型 RFC 调用。
+- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`：执行强类型 RFC 调用。
 
 ## 3. 顶层源码地图
 
@@ -157,7 +159,7 @@ flowchart LR
 
 1. 业务类注入 `IRfcClient`。
 2. 可选：设置 `_rfcClient.ConfigId = "Sap.JSY"`。
-3. 调用 `Invoke<TIn,TOut>(input, forceNew)`。
+3. 调用 `Invoke<TOut>(input, functionName, forceNew)`。
 4. `RfcClient` 优先使用自身 `ConfigId`。
 5. 如果 `ConfigId` 为空，则使用 `IRfcConfigProvider.GetDefaultConfigId()`。
 6. `RfcClient` 创建 `RfcSession`。

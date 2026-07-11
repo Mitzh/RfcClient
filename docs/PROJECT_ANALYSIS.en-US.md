@@ -1,8 +1,10 @@
-﻿# RfcClient Project Analysis and Maintenance Guide
+# RfcClient Project Analysis and Maintenance Guide
 
 ## Project Snapshot
 
 `RfcClient` is a .NET 10 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+
+Public implementation types use the `mitzh` namespace, while abstractions use `mitzh.Abstractions`. `RfcClient` supports Microsoft DI constructor injection and Autofac Module property injection. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`.
 
 The package expects SAP NCo runtime files under `libs/`:
 
@@ -76,7 +78,7 @@ public sealed class SupplyDemandService
 
     public SupplyDemandResponse Query(SupplyDemandRequest request)
     {
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
@@ -85,7 +87,7 @@ Switch the SAP configuration in the current scope:
 
 ```csharp
 client.ConfigId = "Sap.JSY";
-var response = client.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+var response = client.Invoke<SupplyDemandResponse>(request);
 ```
 
 The request type must use `[Table("RFC_FUNCTION_NAME")]`; mapped request and response properties must use `[Column("SAP_FIELD_NAME")]`.

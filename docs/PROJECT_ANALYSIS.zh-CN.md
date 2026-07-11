@@ -1,8 +1,10 @@
-﻿# RfcClient 项目分析与维护指南
+# RfcClient 项目分析与维护指南
 
 ## 项目概览
 
 `RfcClient` 是一个面向 .NET 10 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+
+公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 构造注入和 Autofac Module 属性注入；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`。
 
 项目要求 SAP NCo 运行时文件位于 `libs/` 目录：
 
@@ -73,7 +75,7 @@ public sealed class SupplyDemandService
 
     public SupplyDemandResponse Query(SupplyDemandRequest request)
     {
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
@@ -82,7 +84,7 @@ public sealed class SupplyDemandService
 
 ```csharp
 _rfcClient.ConfigId = "Sap.JSY";
-var response = _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 ```
 
 请求类型必须使用 `[Table("RFC_FUNCTION_NAME")]` 标记 RFC 函数名；请求和响应模型中需要映射的属性应使用 `[Column("SAP_FIELD_NAME")]`。

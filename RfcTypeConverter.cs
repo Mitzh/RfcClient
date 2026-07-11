@@ -5,7 +5,7 @@ using System.Reflection;
 
 using SAP.Middleware.Connector;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 类型转换器。
@@ -75,7 +75,7 @@ public static class RfcTypeConverter
         ArgumentNullException.ThrowIfNull(function);
         ArgumentNullException.ThrowIfNull(input);
 
-        foreach (var property in GetColumnProperties(typeof(T)).Where(t => t.CanRead))
+        foreach (var property in GetColumnProperties(input.GetType()).Where(t => t.CanRead))
         {
             var key = GetColumnName(property);
             var value = property.GetValue(input);
@@ -85,6 +85,30 @@ public static class RfcTypeConverter
             }
 
             function.SetValue(key, ConvertToSapValue(value));
+        }
+    }
+
+    /// <summary>
+    ///   将字典中的键值设置为 RFC 输入参数。
+    /// </summary>
+    public static void SetInputValue(this IRfcFunction function, IDictionary input)
+    {
+        ArgumentNullException.ThrowIfNull(function);
+        ArgumentNullException.ThrowIfNull(input);
+
+        foreach (DictionaryEntry entry in input)
+        {
+            if (entry.Key is not string key || string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentException("Dictionary keys must be non-empty strings.", nameof(input));
+            }
+
+            if (entry.Value is null or DBNull)
+            {
+                continue;
+            }
+
+            function.SetValue(key, ConvertToSapValue(entry.Value));
         }
     }
 

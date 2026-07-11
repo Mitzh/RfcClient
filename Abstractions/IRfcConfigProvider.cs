@@ -1,6 +1,6 @@
-using RfcClient;
+using mitzh;
 
-namespace RfcClient.Abstractions;
+namespace mitzh.Abstractions;
 
 /// <summary>
 ///   SAP RFC 配置提供程序接口。

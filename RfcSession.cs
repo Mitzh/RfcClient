@@ -1,8 +1,9 @@
 using System.Diagnostics;
+using System.Collections;
 using SAP.Middleware.Connector;
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 会话。
@@ -45,16 +46,12 @@ internal sealed class RfcSession : IDisposable
     public string ConfigId { get; }
 
     /// <summary>
-    ///   在会话上下文中调用远程 SAP RFC 函数并获取返回值。
-    ///   内部处理请求验证、函数调用、耗时统计和监视器事件通知。
+    ///   使用请求类或字典调用远程 SAP RFC 函数。
     /// </summary>
-    /// <typeparam name="TIn">请求参数的类型，必须为类类型。</typeparam>
-    /// <typeparam name="TOut">响应结果的类型，必须包含无参构造函数。</typeparam>
-    /// <param name="input">请求参数对象。</param>
-    /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。默认值为 false。</param>
-    /// <returns>RFC 调用返回的结果对象。</returns>
-    public TOut Invoke<TIn, TOut>(TIn input, bool forceNew = false)
-        where TIn : class
+    /// <param name="input">请求类或字典。字典键作为 SAP RFC 参数名。</param>
+    /// <param name="functionName">RFC 函数名。字典输入时必填；类输入时优先于 TableAttribute。</param>
+    /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。</param>
+    public TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false)
         where TOut : new()
     {
         if (_disposed)
@@ -62,21 +59,47 @@ internal sealed class RfcSession : IDisposable
             throw new ObjectDisposedException(nameof(RfcSession));
         }
 
-        var rfcName = RfcRequestMetadata.GetFunctionName<TIn>();
-        RfcRequestMetadata.Validate(input);
+        ArgumentNullException.ThrowIfNull(input);
 
-        var context = new RfcInvocationContext(ConfigId, rfcName, typeof(TIn), typeof(TOut));
+        var isDictionary = input is IDictionary;
+        if (isDictionary && string.IsNullOrWhiteSpace(functionName))
+        {
+            throw new ArgumentException("Function name is required when input is a dictionary.", nameof(functionName));
+        }
+
+        var inputType = input.GetType();
+        if (!isDictionary && !inputType.IsClass)
+        {
+            throw new ArgumentException("Input must be a class or dictionary.", nameof(input));
+        }
+
+        var rfcName = !string.IsNullOrWhiteSpace(functionName)
+            ? functionName
+            : RfcRequestMetadata.GetFunctionName(inputType);
+
+        if (!isDictionary)
+        {
+            RfcRequestMetadata.Validate(input);
+        }
+
+        var context = new RfcInvocationContext(ConfigId, rfcName, inputType, typeof(TOut));
         var stopwatch = Stopwatch.StartNew();
         _monitor.InvocationStarted(context);
 
         try
         {
             var destination = _destinationRegistry.GetDestination(ConfigId, forceNew);
-            var repository = destination.Repository;
-            var function = repository.CreateFunction(rfcName);
-            function.SetInputValue(input);
-            function.Invoke(destination);
+            var function = destination.Repository.CreateFunction(rfcName);
+            if (input is IDictionary dictionary)
+            {
+                function.SetInputValue(dictionary);
+            }
+            else
+            {
+                function.SetInputValue(input);
+            }
 
+            function.Invoke(destination);
             var result = function.GetOutputValue<TOut>();
             stopwatch.Stop();
             context.Complete(stopwatch.Elapsed);
@@ -87,10 +110,8 @@ internal sealed class RfcSession : IDisposable
         {
             stopwatch.Stop();
             context.Complete(stopwatch.Elapsed);
-
             var exception = new InvalidOperationException(
-                $"Failed to invoke RFC function '{rfcName}' on config '{ConfigId}'.",
-                ex);
+                $"Failed to invoke RFC function '{rfcName}' on config '{ConfigId}'.", ex);
             _monitor.InvocationFailed(context, exception);
             throw exception;
         }

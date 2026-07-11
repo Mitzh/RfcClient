@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 配置提供程序的默认实现。

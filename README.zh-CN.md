@@ -1,4 +1,4 @@
-﻿# RfcClient
+# RfcClient
 
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库，基于 SAP .NET Connector (NCo) 构建。
 
@@ -80,7 +80,7 @@ MessageServerPort
 通过 `IServiceCollection` 注册客户端。可显式传入配置，也可让客户端自动从 DI 容器解析 `IConfiguration`：
 
 ```csharp
-using RfcClient;
+using mitzh;
 
 // 方式一：手动传入配置
 builder.Services.AddRfcClient(builder.Configuration);
@@ -99,7 +99,7 @@ builder.Services.AddRfcClient(
 也支持编程方式注册：
 
 ```csharp
-using RfcClient;
+using mitzh;
 
 builder.Services.AddRfcClient(options =>
 {
@@ -111,6 +111,43 @@ builder.Services.AddRfcClient(options =>
     });
 });
 ```
+
+项目公开命名空间为 `mitzh` 和 `mitzh.Abstractions`。
+
+### Autofac Module 注册
+
+`RfcClient` 同时支持构造函数注入和 Autofac 属性注入。三个依赖属性未传入时，会延迟创建项目内的默认实现。
+
+```csharp
+using Autofac;
+using mitzh;
+using mitzh.Abstractions;
+
+public sealed class RfcModule : Module
+{
+    protected override void Load(ContainerBuilder builder)
+    {
+        builder.RegisterType<RfcConnectionMonitor>()
+            .As<IRfcConnectionMonitor>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcConfigProvider>()
+            .As<IRfcConfigProvider>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcDestinationRegistry>()
+            .As<IRfcDestinationRegistry>()
+            .SingleInstance();
+
+        builder.RegisterType<RfcClient>()
+            .As<IRfcClient>()
+            .PropertiesAutowired()
+            .InstancePerLifetimeScope();
+    }
+}
+```
+
+`RfcConfigProvider` 依赖 `IOptions<RfcOptions>`。使用 Autofac 时应注册已配置的 Options，或通过 `ConfigProvider` 属性传入自定义实现。
 
 ## 定义 RFC 模型
 
@@ -173,7 +210,7 @@ public class SupplyDemandRow
 注入 `IRfcClient`，使用强类型请求/响应模型调用 RFC：
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 public class SupplyDemandService
 {
@@ -194,12 +231,32 @@ public class SupplyDemandService
             Source = "C"
         };
 
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
 
 `IRfcClient` 公开了一个作用域级别的 `ConfigId` 属性。若 `ConfigId` 为空，客户端将使用 `IsDefault=true` 的配置；若未标记任何默认配置，则使用 `RfcConnectionConfigs` 中的第一项。
+
+当前调用方法为：
+
+```csharp
+TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false);
+```
+
+- `input` 为类时，显式传入的 `functionName` 优先于类上的 `[Table]` 特性。
+- `input` 为字典时必须传入 `functionName`，字典键直接作为 RFC 参数名。
+- `forceNew=true` 时绕过缓存的 Destination。
+
+```csharp
+var response = _rfcClient.Invoke<SupplyDemandResponse>(
+    new Dictionary<string, object>
+    {
+        ["IV_MATNR"] = "B0505XT-1WR3",
+        ["IV_BUKRS"] = "1100"
+    },
+    functionName: "ZFM_MM039");
+```
 
 ## 按请求切换 ConfigId
 
@@ -208,7 +265,7 @@ public class SupplyDemandService
 中间件示例：
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 app.Use(async (context, next) =>
 {
@@ -228,7 +285,7 @@ app.Use(async (context, next) =>
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 [ApiController]
 [Route("api/supply-demand")]
@@ -244,7 +301,7 @@ public class SupplyDemandController : ControllerBase
     [HttpPost]
     public ActionResult<SupplyDemandResponse> Query(SupplyDemandRequest request)
     {
-        var response = _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
         return Ok(response);
     }
 }
@@ -261,7 +318,7 @@ X-Sap-Rfc-ConfigId: Sap.JSY
 在需要显式控制 RFC 配置时，先设置 `IRfcClient.ConfigId` 再调用：
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 public class ManualRfcService
 {
@@ -275,7 +332,7 @@ public class ManualRfcService
     public SupplyDemandResponse QueryWithJsy(SupplyDemandRequest request)
     {
         _rfcClient.ConfigId = "Sap.JSY";
-        return _rfcClient.Invoke<SupplyDemandRequest, SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request);
     }
 }
 ```
@@ -288,8 +345,8 @@ public class ManualRfcService
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using RfcClient;
-using RfcClient.Abstractions;
+using mitzh;
+using mitzh.Abstractions;
 
 public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 {
@@ -342,7 +399,7 @@ public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 在 `AddRfcClient` 前后注册监控器：
 
 ```csharp
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
 builder.Services.AddSingleton<IRfcConnectionMonitor, LoggingRfcConnectionMonitor>();
 builder.Services.AddRfcClient(builder.Configuration);

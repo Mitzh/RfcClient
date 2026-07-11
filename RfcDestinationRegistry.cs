@@ -1,7 +1,7 @@
 using SAP.Middleware.Connector;
-using RfcClient.Abstractions;
+using mitzh.Abstractions;
 
-namespace RfcClient;
+namespace mitzh;
 
 /// <summary>
 ///   RFC 目标注册表的默认实现。
