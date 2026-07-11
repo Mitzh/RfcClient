@@ -22,7 +22,7 @@ The public implementation namespace is `mitzh`, and the interface namespace is `
 The current public entry point is:
 
 - `IRfcClient.ConfigId`: the current scoped SAP RFC config ID. Empty means the default configured destination is used.
-- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`: executes a typed RFC call.
+- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`: executes a typed RFC call.
 
 ## 3. Top-Level Source Map
 
@@ -159,9 +159,9 @@ flowchart LR
 
 1. Business code injects `IRfcClient`.
 2. Optional: set `_rfcClient.ConfigId = "Sap.JSY"`.
-3. It calls `Invoke<TOut>(input, functionName, forceNew)`.
-4. `RfcClient` first uses its own `ConfigId`.
-5. If `ConfigId` is empty, it uses `IRfcConfigProvider.GetDefaultConfigId()`.
+3. It calls `Invoke<TOut>(input, functionName, forceNew, configId)`.
+4. `RfcClient` first uses the method-level `configId`, then its own `ConfigId`.
+5. If both are empty, it uses `IRfcConfigProvider.GetDefaultConfigId()`.
 6. `RfcClient` creates `RfcSession`.
 7. `RfcSession` reads the RFC function name, validates input, resolves the destination, invokes SAP RFC, and converts the response.
 8. On success, it raises `InvocationSucceeded`; on failure, it raises `InvocationFailed`.

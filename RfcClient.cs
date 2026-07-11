@@ -48,7 +48,7 @@ public class RfcClient : IRfcClient
     /// <summary>
     ///   获取或设置 RFC 连接监视器。未设置时使用 <see cref="RfcConnectionMonitor"/>。
     /// </summary>
-    public IRfcConnectionMonitor ConnectionMonitor
+    public virtual IRfcConnectionMonitor ConnectionMonitor
     {
         get => _monitor ??= new RfcConnectionMonitor();
         set
@@ -62,7 +62,7 @@ public class RfcClient : IRfcClient
     /// <summary>
     ///   获取或设置 RFC 配置提供程序。未设置时使用基于空配置的 <see cref="RfcConfigProvider"/>。
     /// </summary>
-    public IRfcConfigProvider ConfigProvider
+    public virtual IRfcConfigProvider ConfigProvider
     {
         get => _configProvider ??= new RfcConfigProvider(Options.Create(new RfcOptions()));
         set
@@ -76,7 +76,7 @@ public class RfcClient : IRfcClient
     /// <summary>
     ///   获取或设置 RFC 目标注册表。未设置时使用 <see cref="RfcDestinationRegistry"/>。
     /// </summary>
-    public IRfcDestinationRegistry DestinationRegistry
+    public virtual IRfcDestinationRegistry DestinationRegistry
     {
         get => _destinationRegistry ??= new RfcDestinationRegistry(ConfigProvider, ConnectionMonitor);
         set
@@ -92,7 +92,7 @@ public class RfcClient : IRfcClient
     ///   如果未设置，则使用配置提供程序返回的默认配置标识。
     ///   若设置的 ConfigId 未在 RfcConnectionConfigs 中注册，将自动回退到默认配置。
     /// </summary>
-    public string ConfigId { get; set; } = string.Empty;
+    public virtual string ConfigId { get; set; } = string.Empty;
 
     /// <summary>
     ///   调用远程 SAP RFC 函数，输入可为请求类或字典。
@@ -101,20 +101,28 @@ public class RfcClient : IRfcClient
     /// <param name="input">请求类或字典。字典键作为 SAP RFC 参数名。</param>
     /// <param name="functionName">RFC 函数名。字典输入时必填；类输入时优先于 TableAttribute。</param>
     /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。</param>
+    /// <param name="configId">本次调用使用的配置标识。优先于实例的 <see cref="ConfigId"/>。</param>
     /// <returns>RFC 调用返回的结果对象。</returns>
-    public TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false)
+    public virtual TOut Invoke<TOut>(
+        object input,
+        string functionName = null,
+        bool forceNew = false,
+        string configId = null)
         where TOut : new()
     {
-        var configId = string.IsNullOrWhiteSpace(ConfigId)
-            ? ConfigProvider.GetDefaultConfigId()
-            : ConfigId;
+        var effectiveConfigId = !string.IsNullOrWhiteSpace(configId)
+            ? configId
+            : !string.IsNullOrWhiteSpace(ConfigId)
+                ? ConfigId
+                : ConfigProvider.GetDefaultConfigId();
 
-        if (!string.IsNullOrWhiteSpace(configId) && !RfcConnectionManager.IsDestinationRegistered(configId))
+        if (!string.IsNullOrWhiteSpace(effectiveConfigId)
+            && !RfcConnectionManager.IsDestinationRegistered(effectiveConfigId))
         {
-            configId = ConfigProvider.GetDefaultConfigId();
+            effectiveConfigId = ConfigProvider.GetDefaultConfigId();
         }
 
-        using var session = new RfcSession(configId, DestinationRegistry, ConnectionMonitor);
+        using var session = new RfcSession(effectiveConfigId, DestinationRegistry, ConnectionMonitor);
         return session.Invoke<TOut>(input, functionName, forceNew);
     }
 

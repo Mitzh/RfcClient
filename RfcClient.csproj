@@ -8,12 +8,16 @@
         <RootNamespace>mitzh</RootNamespace>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageId>RfcClient</PackageId>
-        <Version>0.1.0</Version>
+        <Version>1.0.0</Version>
         <Authors>mitzh</Authors>
         <Company>mitzh.com</Company>
         <Description>A DI-friendly SAP RFC client wrapper for SAP .NET Connector.</Description>
         <PackageTags>SAP;RFC;NCo;DependencyInjection</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageProjectUrl>https://github.com/mitzh/RfcClient/blob/main/README.zh-CN.md</PackageProjectUrl>
         <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/mitzh/RfcClient</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <LibPath Condition="'$(LibPath)' == ''">$(MSBuildProjectDirectory)\libs</LibPath>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -41,6 +45,7 @@
 
     <ItemGroup>
       <None Include="README.md" Pack="true" PackagePath="\" />
+      <None Include="icon.png" Pack="true" PackagePath="\" />
       <None Remove="docs\**\*.md" />
       <None Include="docs\**\*.md" Pack="true" PackagePath="docs\" />
       <None Include="libs\cpc4n.dll" Pack="true" PackagePath="lib\net10.0\" />

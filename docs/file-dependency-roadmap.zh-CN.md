@@ -22,7 +22,7 @@
 当前对外主入口是：
 
 - `IRfcClient.ConfigId`：当前 scope 内的 SAP RFC 配置 ID。为空时使用默认配置。
-- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`：执行强类型 RFC 调用。
+- `IRfcClient.Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`：执行强类型 RFC 调用。
 
 ## 3. 顶层源码地图
 
@@ -159,9 +159,9 @@ flowchart LR
 
 1. 业务类注入 `IRfcClient`。
 2. 可选：设置 `_rfcClient.ConfigId = "Sap.JSY"`。
-3. 调用 `Invoke<TOut>(input, functionName, forceNew)`。
-4. `RfcClient` 优先使用自身 `ConfigId`。
-5. 如果 `ConfigId` 为空，则使用 `IRfcConfigProvider.GetDefaultConfigId()`。
+3. 调用 `Invoke<TOut>(input, functionName, forceNew, configId)`。
+4. `RfcClient` 优先使用方法参数 `configId`，其次使用自身 `ConfigId`。
+5. 两者均为空时，使用 `IRfcConfigProvider.GetDefaultConfigId()`。
 6. `RfcClient` 创建 `RfcSession`。
 7. `RfcSession` 读取 RFC function 名、校验输入、获取 destination、执行 SAP RFC、转换响应。
 8. 成功时通知 `InvocationSucceeded`；失败时通知 `InvocationFailed`。

@@ -18,7 +18,8 @@ public interface IRfcClient
     /// <param name="input">请求类或字典。字典键作为 SAP RFC 参数名。</param>
     /// <param name="functionName">RFC 函数名。字典输入时必填；类输入时优先于 TableAttribute。</param>
     /// <param name="forceNew">是否强制使用新的连接目标（绕过缓存）。</param>
+    /// <param name="configId">本次调用使用的配置标识，优先于实例级 ConfigId。</param>
     /// <returns>RFC 调用返回的结果对象。</returns>
-    TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false)
+    TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)
         where TOut : new();
 }

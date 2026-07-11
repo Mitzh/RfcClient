@@ -242,12 +242,13 @@ public class SupplyDemandService
 The current invocation API is:
 
 ```csharp
-TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false);
+TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null);
 ```
 
 - For a class input, an explicit `functionName` takes precedence over its `[Table]` attribute.
 - For a dictionary input, `functionName` is required and dictionary keys are used as RFC parameter names.
 - Set `forceNew` to `true` to bypass the cached destination.
+- Config selection priority is: method `configId` → instance `ConfigId` → default config.
 
 ```csharp
 var response = _rfcClient.Invoke<SupplyDemandResponse>(
@@ -316,7 +317,7 @@ X-Sap-Rfc-ConfigId: Sap.JSY
 
 ## Call With Explicit ConfigId
 
-Set `IRfcClient.ConfigId` before invoking when you need explicit control over the RFC config:
+Pass `configId` when a config should apply only to the current invocation:
 
 ```csharp
 using mitzh.Abstractions;
@@ -332,13 +333,12 @@ public class ManualRfcService
 
     public SupplyDemandResponse QueryWithJsy(SupplyDemandRequest request)
     {
-        _rfcClient.ConfigId = "Sap.JSY";
-        return _rfcClient.Invoke<SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request, configId: "Sap.JSY");
     }
 }
 ```
 
-Set `ConfigId` back to an empty string to return to the default configured SAP RFC connection in the same scope.
+The method-level `configId` affects only the current invocation and does not change the instance `ConfigId` property.
 
 ## Monitor Connections And Calls
 

@@ -4,7 +4,7 @@
 
 `RfcClient` 是一个面向 .NET 10 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
-公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 构造注入和 Autofac Module 属性注入；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false)`。
+公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 构造注入和 Autofac Module 属性注入；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
 项目要求 SAP NCo 运行时文件位于 `libs/` 目录：
 

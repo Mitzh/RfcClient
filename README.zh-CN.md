@@ -241,12 +241,13 @@ public class SupplyDemandService
 当前调用方法为：
 
 ```csharp
-TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false);
+TOut Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null);
 ```
 
 - `input` 为类时，显式传入的 `functionName` 优先于类上的 `[Table]` 特性。
 - `input` 为字典时必须传入 `functionName`，字典键直接作为 RFC 参数名。
 - `forceNew=true` 时绕过缓存的 Destination。
+- 配置选择优先级为：方法参数 `configId` → 实例属性 `ConfigId` → 默认配置。
 
 ```csharp
 var response = _rfcClient.Invoke<SupplyDemandResponse>(
@@ -315,7 +316,7 @@ X-Sap-Rfc-ConfigId: Sap.JSY
 
 ## 显式指定 ConfigId 调用
 
-在需要显式控制 RFC 配置时，先设置 `IRfcClient.ConfigId` 再调用：
+在需要仅为本次调用显式指定 RFC 配置时，直接传入 `configId`：
 
 ```csharp
 using mitzh.Abstractions;
@@ -331,13 +332,12 @@ public class ManualRfcService
 
     public SupplyDemandResponse QueryWithJsy(SupplyDemandRequest request)
     {
-        _rfcClient.ConfigId = "Sap.JSY";
-        return _rfcClient.Invoke<SupplyDemandResponse>(request);
+        return _rfcClient.Invoke<SupplyDemandResponse>(request, configId: "Sap.JSY");
     }
 }
 ```
 
-将 `ConfigId` 设回空字符串，即可在同一作用域内恢复到默认的 SAP RFC 连接。
+方法参数 `configId` 只影响本次调用，不会修改实例的 `ConfigId` 属性。
 
 ## 监控连接与调用
 
