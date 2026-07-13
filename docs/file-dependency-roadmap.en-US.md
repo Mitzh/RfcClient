@@ -1,6 +1,6 @@
 # RfcClient File Dependency Roadmap
 
-Generated on: 2026-07-09
+Generated on: 2026-07-13
 
 ## 1. Analysis Scope
 
@@ -10,6 +10,8 @@ This roadmap is based on the repository source files, project file, solution fil
 - `RfcClient.csproj`
 - `RfcClient.sln`
 - `README.md`
+- `buildTransitive/*.props` and `buildTransitive/*.targets`
+- `.github/workflows/publish-nuget.yml`
 
 `bin/`, `obj/`, and SAP NCo runtime DLLs under `libs/` are not treated as business source code.
 
@@ -18,6 +20,8 @@ This roadmap is based on the repository source files, project file, solution fil
 `RfcClient` is a dependency-injection-friendly SAP RFC client wrapper. It packages SAP .NET Connector destination registration, destination caching, RFC function creation, request/response mapping, and invocation monitoring behind a scoped `IRfcClient`.
 
 The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports both constructor injection and Autofac Module property injection.
+
+The project targets `net10.0` and Windows x64. NuGet 1.0.1 imports transitive build files that change an unspecified or `AnyCPU` consumer to `x64` automatically.
 
 The current public entry point is:
 
@@ -31,6 +35,11 @@ RfcClient/
 ├─ RfcClient.csproj
 ├─ RfcClient.sln
 ├─ README.md
+├─ buildTransitive/
+│  ├─ RfcClient.props
+│  └─ RfcClient.targets
+├─ .github/workflows/
+│  └─ publish-nuget.yml
 ├─ Abstractions/
 │  ├─ IRfcClient.cs
 │  ├─ IRfcConfigProvider.cs
@@ -57,24 +66,27 @@ flowchart TD
     A["Business code / Consumer"] --> B["IRfcClient"]
     B --> C["Set or read IRfcClient.ConfigId"]
     B --> D["RfcClient.Invoke"]
-    D --> E{"Is ConfigId empty?"}
-    E -- "No" --> F["Use IRfcClient.ConfigId"]
-    E -- "Yes" --> G["IRfcConfigProvider.GetDefaultConfigId"]
-    F --> H["new RfcSession(configId, registry, monitor)"]
-    G --> H
-    H --> I["RfcSession.Invoke"]
-    I --> J["RfcRequestMetadata.GetFunctionName<TIn>"]
-    J --> K["RfcRequestMetadata.Validate(input)"]
-    K --> L["IRfcConnectionMonitor.InvocationStarted"]
-    L --> M["IRfcDestinationRegistry.GetDestination"]
-    M --> N["RfcConnectionManager.GetDestination"]
-    N --> O["SAP RfcDestinationManager.GetDestination"]
-    O --> P["destination.Repository.CreateFunction"]
-    P --> Q["RfcTypeConverter.SetInputValue"]
-    Q --> R["IRfcFunction.Invoke"]
-    R --> S["RfcTypeConverter.GetOutputValue<TOut>"]
-    S --> T["IRfcConnectionMonitor.InvocationSucceeded / Failed"]
-    T --> U["Return TOut"]
+    D --> E{"Is method configId empty?"}
+    E -- "No" --> F["Use method configId"]
+    E -- "Yes" --> G{"Is IRfcClient.ConfigId empty?"}
+    G -- "No" --> H["Use instance ConfigId"]
+    G -- "Yes" --> I["IRfcConfigProvider.GetDefaultConfigId"]
+    F --> J["new RfcSession(configId, registry, monitor)"]
+    H --> J
+    I --> J
+    J --> K["RfcSession.Invoke"]
+    K --> L["RfcRequestMetadata.GetFunctionName(inputType)"]
+    L --> M["RfcRequestMetadata.Validate(input)"]
+    M --> N["IRfcConnectionMonitor.InvocationStarted"]
+    N --> O["IRfcDestinationRegistry.GetDestination"]
+    O --> P["RfcConnectionManager.GetDestination"]
+    P --> Q["SAP RfcDestinationManager.GetDestination"]
+    Q --> R["destination.Repository.CreateFunction"]
+    R --> S["RfcTypeConverter.SetInputValue"]
+    S --> T["IRfcFunction.Invoke"]
+    T --> U["RfcTypeConverter.GetOutputValue<TOut>"]
+    U --> V["IRfcConnectionMonitor.InvocationSucceeded / Failed"]
+    V --> W["Return TOut"]
 ```
 
 ## 5. Configuration Parsing and Destination Registration
@@ -111,9 +123,12 @@ flowchart LR
 
 | File | Primary responsibility | Depends on / calls | Used by |
 |---|---|---|---|
-| `RfcClient.csproj` | Defines the class library, target framework, SAP NCo DLL references, Microsoft.Extensions packages, and package metadata | `libs/*.dll`, `Microsoft.Extensions.*` | `RfcClient.sln`, build tooling |
-| `RfcClient.sln` | Visual Studio solution entry point | `RfcClient.csproj` | IDE / build tooling |
+| `RfcClient.csproj` | Defines the `net10.0`/x64 library, SAP NCo references, dependencies, and NuGet 1.0.1 package layout | `libs/*.dll`, `Microsoft.Extensions.*`, `buildTransitive/*` | `RfcClient.sln`, build tooling |
+| `RfcClient.sln` | Visual Studio x64 solution entry point | `RfcClient.csproj` | IDE / build tooling |
 | `README.md` | User guide, configuration examples, model examples, build and pack instructions | Public project APIs | Users and maintainers |
+| `buildTransitive/RfcClient.props` | Defaults an unspecified or `AnyCPU` consumer to `x64` | MSBuild `PlatformTarget` | All direct and transitive consumers |
+| `buildTransitive/RfcClient.targets` | Copies native `ijwhost.dll` into build and publish outputs | `runtimes/win-x64/native/ijwhost.dll` | Consumer Build/Publish |
+| `.github/workflows/publish-nuget.yml` | Packs and uploads to NuGet.org through Trusted Publishing | `v*` Git tags, NuGet OIDC | GitHub Actions |
 | `Abstractions/IRfcClient.cs` | Main public invocation interface with `ConfigId` and `Invoke` | No internal dependency | `RfcClient`, business code |
 | `Abstractions/IRfcConfigProvider.cs` | Provides default config ID and resolved RFC configuration parameters | `RfcConfigParameter` | `RfcConfigProvider`, `RfcClient`, `RfcDestinationRegistry` |
 | `Abstractions/IRfcDestinationRegistry.cs` | Abstracts destination lookup and config queries | `RfcDestination`, `RfcConfigParameter` | `RfcDestinationRegistry`, `RfcSession` |
@@ -130,6 +145,22 @@ flowchart LR
 | `RfcRequestMetadata.cs` | Centralizes `[Table]` RFC function-name lookup and DataAnnotations validation | `TableAttribute`, `Validator` | `RfcSession` |
 | `RfcConnectionMonitor.cs` | Default no-op monitor implementation that users can replace | `IRfcConnectionMonitor` | Default DI registration |
 | `RfcMonitoringContexts.cs` | Monitoring context objects | `RfcDestination`, `RfcConfigParameter`, `Type`, timestamps | `IRfcConnectionMonitor`, `RfcDestinationRegistry`, `RfcSession` |
+
+### 7.1 NuGet Architecture and Runtime Asset Flow
+
+```mermaid
+flowchart LR
+    A["Consumer PackageReference"] --> B["buildTransitive/RfcClient.props"]
+    B --> C["PlatformTarget = x64"]
+    A --> D["lib/net10.0 AMD64 managed assemblies"]
+    A --> E["buildTransitive/RfcClient.targets"]
+    E --> F["Copy runtimes/win-x64/native/ijwhost.dll"]
+    C --> G["x64 build output"]
+    D --> G
+    F --> G
+```
+
+Consumers do not need to add `Platforms` or `PlatformTarget` explicitly. Explicit `x86`, ARM, or other incompatible targets remain unsupported.
 
 ## 8. DI Registration Details
 
@@ -199,21 +230,23 @@ When `forceNew = true`, `RfcConnectionManager.GetDestination` removes the cached
 | `IRfcClient.ConfigId` is scoped state | Do not register `IRfcClient` as singleton, otherwise different requests can share config state. |
 | `RfcConnectionManager` uses static global state | Multiple tests, multiple hosts, or multiple option sets in one process need to account for shared state, cache reuse, and cleanup timing. |
 | `RfcDestinationRegistry` registers all destinations during construction | Configuration errors may surface when the singleton is resolved, before the first RFC call. |
+| SAP NCo assemblies are AMD64 | Windows x64 only; releases must preserve the split between managed assemblies and native `ijwhost.dll`. |
 | No test project is present | The repository currently shows no test project. Config parsing, `ConfigId` selection, type conversion, and cache behavior are good test candidates. |
 
 ## 12. Recommended Reading Order
 
 1. `README.md`
-2. `RfcServiceCollectionExtensions.cs`
-3. `Abstractions/IRfcClient.cs`
-4. `RfcClient.cs`
-5. `RfcSession.cs`
-6. `RfcDestinationRegistry.cs`
-7. `RfcConnectionManager.cs`
-8. `RfcOptions.cs`
-9. `RfcTypeConverter.cs`
-10. `RfcConnectionMonitor.cs` and `RfcMonitoringContexts.cs`
+2. `RfcClient.csproj` and `buildTransitive/*`
+3. `RfcServiceCollectionExtensions.cs`
+4. `Abstractions/IRfcClient.cs`
+5. `RfcClient.cs`
+6. `RfcSession.cs`
+7. `RfcDestinationRegistry.cs`
+8. `RfcConnectionManager.cs`
+9. `RfcOptions.cs`
+10. `RfcTypeConverter.cs`
+11. `RfcConnectionMonitor.cs` and `RfcMonitoringContexts.cs`
 
 ## 13. One-Sentence Architecture Summary
 
-The main project line is: `DI registration -> IRfcClient owns scoped ConfigId -> RfcClient creates RfcSession -> SAP Destination lookup/cache -> attribute-based SAP RFC invocation -> typed response conversion -> monitor lifecycle callbacks`.
+The main project line is: `NuGet selects x64 and deploys the native runtime -> DI registration -> IRfcClient owns scoped ConfigId -> RfcClient creates RfcSession -> SAP Destination lookup/cache -> attribute-based SAP RFC invocation -> typed response conversion -> monitor lifecycle callbacks`.

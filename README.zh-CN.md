@@ -7,6 +7,7 @@
 更多文档：
 
 - [项目分析与维护指南](docs/PROJECT_ANALYSIS.zh-CN.md)
+- [文件调用依赖路线图](docs/file-dependency-roadmap.zh-CN.md)
 - [English README](README.md)
 
 ## 功能特性
@@ -24,10 +25,10 @@
 安装 NuGet 包：
 
 ```bash
-dotnet add package RfcClient
+dotnet add package RfcClient --version 1.0.1
 ```
 
-该包目标框架为 `net10.0`。
+该包面向 `net10.0`，并且仅支持 Windows x64，因为随包提供的 SAP NCo 程序集是 AMD64 二进制文件。从 1.0.1 版本开始，当调用项目未显式指定目标平台或使用 `AnyCPU` 时，包会自动采用 `x64`；消费项目不需要添加 `Platforms` 或 `PlatformTarget` 属性。
 
 ## 配置
 
@@ -418,7 +419,14 @@ libs/sapnco.dll
 libs/sapnco_utils.dll
 ```
 
-编译时这些文件会被复制到输出根目录，与 `RfcClient.dll` 并列。NuGet 包中它们位于 `lib/net10.0/`。两个清理配置项位于 `RfcOptions` 中：
+从源码编译时，这些文件会被复制到输出根目录，与 `RfcClient.dll` 并列。在 NuGet 包中，托管 AMD64 程序集位于 `lib/net10.0/`，原生 `ijwhost.dll` 位于 `runtimes/win-x64/native/`。
+
+包中还包含：
+
+- `buildTransitive/RfcClient.props`：将未指定平台或使用 `AnyCPU` 的消费项目默认调整为 `x64`。
+- `buildTransitive/RfcClient.targets`：在普通构建和发布时将 `ijwhost.dll` 复制到输出目录。
+
+两个清理配置项位于 `RfcOptions` 中：
 
 - `CleanupInterval`（默认 `00:05:00`）：客户端检查空闲 destination 的频率。
 - `DestinationIdleTimeout`（默认 `00:10:00`）：destination 未被使用多久后从缓存中移除。
@@ -427,7 +435,7 @@ libs/sapnco_utils.dll
 
 ## XML 文档
 
-本库在编译时生成 XML 文档文件（`RfcClient.xml`），与程序集一同输出到构建目录。Visual Studio、JetBrains Rider 等 IDE 会自动加载它，为公共类型和成员提供中英文内联说明。
+本库在编译时生成 XML 文档文件（`RfcClient.xml`），与程序集一同输出到构建目录。Visual Studio、JetBrains Rider 等 IDE 会自动加载它，为公共类型和成员提供中文内联说明。
 
 ## 构建与打包
 
@@ -439,5 +447,5 @@ dotnet pack .\RfcClient.csproj -c Release
 生成的 NuGet 包位于：
 
 ```text
-bin/Release/RfcClient.0.1.0.nupkg
+bin/Release/RfcClient.1.0.1.nupkg
 ```

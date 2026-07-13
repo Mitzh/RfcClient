@@ -2,7 +2,7 @@
 
 ## Project Snapshot
 
-`RfcClient` is a .NET 10 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+`RfcClient` 1.0.1 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
 Public implementation types use the `mitzh` namespace, while abstractions use `mitzh.Abstractions`. `RfcClient` supports Microsoft DI constructor injection and Autofac Module property injection. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
@@ -12,6 +12,14 @@ The package expects SAP NCo runtime files under `libs/`:
 - `ijwhost.dll`
 - `sapnco.dll`
 - `sapnco_utils.dll`
+
+`cpc4n.dll`, `sapnco.dll`, and `sapnco_utils.dll` are AMD64 managed assemblies, so both the project and process must run as x64. The NuGet package imports `buildTransitive/RfcClient.props` to change an unspecified or `AnyCPU` consumer to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` manually.
+
+Package runtime layout:
+
+- `lib/net10.0/`: `RfcClient.dll`, XML documentation, and the three AMD64 managed assemblies.
+- `runtimes/win-x64/native/ijwhost.dll`: the native runtime required by C++/CLI.
+- `buildTransitive/RfcClient.targets`: copies `ijwhost.dll` into consumer build and publish outputs.
 
 ## Architecture
 
@@ -94,6 +102,14 @@ The request type must use `[Table("RFC_FUNCTION_NAME")]`; mapped request and res
 
 ## Refactoring Applied
 
+Version 1.0.1 platform and packaging changes:
+
+- Standardized the project and solution on `x64`.
+- Added transitive build configuration so consumers do not declare `Platforms` or `PlatformTarget` explicitly.
+- Moved native `ijwhost.dll` from `lib/net10.0/` to `runtimes/win-x64/native/`, preventing NuGet from treating it as a managed assembly.
+- Added a transitive copy target so normal build and publish outputs both contain `ijwhost.dll`.
+- Standardized the root namespace on `mitzh` and abstractions on `mitzh.Abstractions`.
+
 Following changes were made in this maintenance pass:
 
 - Renamed `ScopedRfcClient` class to `RfcClient`; the source file was renamed accordingly.
@@ -124,14 +140,16 @@ Existing maintenance work in the project also includes:
 Build:
 
 ```bash
-dotnet build .\RfcClient.sln
+dotnet build .\RfcClient.sln -c Release
 ```
 
 Package:
 
 ```bash
-dotnet pack .\RfcClient.csproj -c Release
+dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
+
+The output package is `bin/Release/RfcClient.1.0.1.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
 
 ## Maintenance Notes
 
@@ -139,4 +157,4 @@ dotnet pack .\RfcClient.csproj -c Release
 - Treat connection strings and passwords as secrets; do not log full connection strings.
 - Prefer adding tests around `RfcOptions`, `RfcClient`, and `RfcTypeConverter` before expanding supported mapping scenarios.
 - If the library must support older applications, evaluate retargeting or multi-targeting instead of only changing README text.
-- SAP NCo files are platform-specific. Keep package/runtime layout explicit and verify on the deployment OS.
+- SAP NCo files support Windows x64 only. Before release, verify automatic architecture selection, build output, and publish output with a clean consumer project that has no explicit platform settings.

@@ -1,6 +1,6 @@
 # RfcClient 文件调用依赖路线图
 
-生成日期：2026-07-09
+生成日期：2026-07-13
 
 ## 1. 分析范围
 
@@ -10,6 +10,8 @@
 - `RfcClient.csproj`
 - `RfcClient.sln`
 - `README.md`
+- `buildTransitive/*.props`、`buildTransitive/*.targets`
+- `.github/workflows/publish-nuget.yml`
 
 `bin/`、`obj/` 构建产物，以及 `libs/` 下的 SAP NCo 运行时 DLL 不作为业务源码分析对象。
 
@@ -18,6 +20,8 @@
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库。它将 SAP .NET Connector 的 destination 注册、连接缓存、RFC function 创建、请求/响应映射和调用监控包装成一个 scoped `IRfcClient`。
 
 公开命名空间为 `mitzh`，接口命名空间为 `mitzh.Abstractions`。客户端既支持构造函数注入，也支持 Autofac Module 的属性注入。
+
+项目面向 `net10.0` 和 Windows x64。NuGet 1.0.1 通过传递构建文件自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`。
 
 当前对外主入口是：
 
@@ -31,6 +35,11 @@ RfcClient/
 ├─ RfcClient.csproj
 ├─ RfcClient.sln
 ├─ README.md
+├─ buildTransitive/
+│  ├─ RfcClient.props
+│  └─ RfcClient.targets
+├─ .github/workflows/
+│  └─ publish-nuget.yml
 ├─ Abstractions/
 │  ├─ IRfcClient.cs
 │  ├─ IRfcConfigProvider.cs
@@ -57,24 +66,27 @@ flowchart TD
     A["业务代码 / Consumer"] --> B["IRfcClient"]
     B --> C["设置或读取 IRfcClient.ConfigId"]
     B --> D["RfcClient.Invoke"]
-    D --> E{"ConfigId 是否为空"}
-    E -- "不为空" --> F["使用 IRfcClient.ConfigId"]
-    E -- "为空" --> G["IRfcConfigProvider.GetDefaultConfigId"]
-    F --> H["new RfcSession(configId, registry, monitor)"]
-    G --> H
-    H --> I["RfcSession.Invoke"]
-    I --> J["RfcRequestMetadata.GetFunctionName<TIn>"]
-    J --> K["RfcRequestMetadata.Validate(input)"]
-    K --> L["IRfcConnectionMonitor.InvocationStarted"]
-    L --> M["IRfcDestinationRegistry.GetDestination"]
-    M --> N["RfcConnectionManager.GetDestination"]
-    N --> O["SAP RfcDestinationManager.GetDestination"]
-    O --> P["destination.Repository.CreateFunction"]
-    P --> Q["RfcTypeConverter.SetInputValue"]
-    Q --> R["IRfcFunction.Invoke"]
-    R --> S["RfcTypeConverter.GetOutputValue<TOut>"]
-    S --> T["IRfcConnectionMonitor.InvocationSucceeded / Failed"]
-    T --> U["返回 TOut"]
+    D --> E{"方法参数 configId 是否为空"}
+    E -- "不为空" --> F["使用方法参数 configId"]
+    E -- "为空" --> G{"IRfcClient.ConfigId 是否为空"}
+    G -- "不为空" --> H["使用实例 ConfigId"]
+    G -- "为空" --> I["IRfcConfigProvider.GetDefaultConfigId"]
+    F --> J["new RfcSession(configId, registry, monitor)"]
+    H --> J
+    I --> J
+    J --> K["RfcSession.Invoke"]
+    K --> L["RfcRequestMetadata.GetFunctionName(inputType)"]
+    L --> M["RfcRequestMetadata.Validate(input)"]
+    M --> N["IRfcConnectionMonitor.InvocationStarted"]
+    N --> O["IRfcDestinationRegistry.GetDestination"]
+    O --> P["RfcConnectionManager.GetDestination"]
+    P --> Q["SAP RfcDestinationManager.GetDestination"]
+    Q --> R["destination.Repository.CreateFunction"]
+    R --> S["RfcTypeConverter.SetInputValue"]
+    S --> T["IRfcFunction.Invoke"]
+    T --> U["RfcTypeConverter.GetOutputValue<TOut>"]
+    U --> V["IRfcConnectionMonitor.InvocationSucceeded / Failed"]
+    V --> W["返回 TOut"]
 ```
 
 ## 5. 配置解析与 Destination 注册路线
@@ -111,9 +123,12 @@ flowchart LR
 
 | 文件 | 主要职责 | 依赖 / 调用 | 被谁使用 |
 |---|---|---|---|
-| `RfcClient.csproj` | 定义类库、目标框架、SAP NCo DLL 引用、Microsoft.Extensions 包引用和打包配置 | `libs/*.dll`、`Microsoft.Extensions.*` | `RfcClient.sln`、构建工具 |
-| `RfcClient.sln` | Visual Studio 解决方案入口 | `RfcClient.csproj` | IDE / 构建工具 |
+| `RfcClient.csproj` | 定义 `net10.0`/x64 类库、SAP NCo DLL 引用、依赖和 NuGet 1.0.1 打包布局 | `libs/*.dll`、`Microsoft.Extensions.*`、`buildTransitive/*` | `RfcClient.sln`、构建工具 |
+| `RfcClient.sln` | Visual Studio x64 解决方案入口 | `RfcClient.csproj` | IDE / 构建工具 |
 | `README.md` | 用户使用说明、配置示例、模型示例、构建打包说明 | 项目公开 API | 使用者和维护者 |
+| `buildTransitive/RfcClient.props` | 将未指定平台或 `AnyCPU` 的消费项目默认设为 `x64` | MSBuild `PlatformTarget` | 所有直接和传递消费项目 |
+| `buildTransitive/RfcClient.targets` | 将原生 `ijwhost.dll` 复制到构建与发布输出 | `runtimes/win-x64/native/ijwhost.dll` | 消费项目的 Build/Publish |
+| `.github/workflows/publish-nuget.yml` | 构建包并通过 Trusted Publishing 上传 NuGet.org | Git 标签 `v*`、NuGet OIDC | GitHub Actions |
 | `Abstractions/IRfcClient.cs` | 对外主调用接口，包含 `ConfigId` 和 `Invoke` | 无项目内依赖 | `RfcClient`、业务代码 |
 | `Abstractions/IRfcConfigProvider.cs` | 提供默认配置 ID 与配置参数 | `RfcConfigParameter` | `RfcConfigProvider`、`RfcClient`、`RfcDestinationRegistry` |
 | `Abstractions/IRfcDestinationRegistry.cs` | 抽象 destination 获取与配置查询 | `RfcDestination`、`RfcConfigParameter` | `RfcDestinationRegistry`、`RfcSession` |
@@ -130,6 +145,22 @@ flowchart LR
 | `RfcRequestMetadata.cs` | 集中解析 `[Table]` RFC function 名并执行 DataAnnotations 校验 | `TableAttribute`、`Validator` | `RfcSession` |
 | `RfcConnectionMonitor.cs` | 默认空实现监控器，允许用户替换 | `IRfcConnectionMonitor` | DI 默认注册 |
 | `RfcMonitoringContexts.cs` | 监控上下文对象 | `RfcDestination`、`RfcConfigParameter`、`Type`、时间戳 | `IRfcConnectionMonitor`、`RfcDestinationRegistry`、`RfcSession` |
+
+### 7.1 NuGet 架构与运行时资产路线
+
+```mermaid
+flowchart LR
+    A["消费项目 PackageReference"] --> B["buildTransitive/RfcClient.props"]
+    B --> C["PlatformTarget = x64"]
+    A --> D["lib/net10.0 AMD64 托管程序集"]
+    A --> E["buildTransitive/RfcClient.targets"]
+    E --> F["复制 runtimes/win-x64/native/ijwhost.dll"]
+    C --> G["x64 构建输出"]
+    D --> G
+    F --> G
+```
+
+消费项目不需要显式添加 `Platforms` 或 `PlatformTarget`。显式指定 `x86`、ARM 或其他不兼容平台仍不受支持。
 
 ## 8. DI 注册依赖
 
@@ -199,21 +230,23 @@ flowchart LR
 | `IRfcClient.ConfigId` 是 scoped 状态 | 不要把 `IRfcClient` 注册为 singleton，否则不同请求之间会共享配置状态。 |
 | `RfcConnectionManager` 是静态全局状态 | 多个测试、多个 Host 或多套 options 在同一进程内运行时需要注意状态复用、缓存和清理行为。 |
 | `RfcDestinationRegistry` 构造时注册全部 destination | 配置错误可能在 DI 解析 singleton 时暴露，而不是第一次调用时才暴露。 |
+| SAP NCo 程序集为 AMD64 | 仅支持 Windows x64；发布包必须保留托管程序集与原生 `ijwhost.dll` 的分离布局。 |
 | 缺少测试项目 | 当前未看到测试项目。建议补充配置解析、`ConfigId` 选择、类型转换和缓存行为测试。 |
 
 ## 12. 推荐阅读顺序
 
 1. `README.md`
-2. `RfcServiceCollectionExtensions.cs`
-3. `Abstractions/IRfcClient.cs`
-4. `RfcClient.cs`
-5. `RfcSession.cs`
-6. `RfcDestinationRegistry.cs`
-7. `RfcConnectionManager.cs`
-8. `RfcOptions.cs`
-9. `RfcTypeConverter.cs`
-10. `RfcConnectionMonitor.cs` 和 `RfcMonitoringContexts.cs`
+2. `RfcClient.csproj` 与 `buildTransitive/*`
+3. `RfcServiceCollectionExtensions.cs`
+4. `Abstractions/IRfcClient.cs`
+5. `RfcClient.cs`
+6. `RfcSession.cs`
+7. `RfcDestinationRegistry.cs`
+8. `RfcConnectionManager.cs`
+9. `RfcOptions.cs`
+10. `RfcTypeConverter.cs`
+11. `RfcConnectionMonitor.cs` 和 `RfcMonitoringContexts.cs`
 
 ## 13. 一句话架构总结
 
-这个项目的主线是：`DI 注册 -> IRfcClient 持有 scope 内 ConfigId -> RfcClient 创建 RfcSession -> 获取/缓存 SAP Destination -> 通过属性映射调用 SAP RFC -> 将输出转换成 typed response -> 通过 monitor 暴露调用生命周期`。
+这个项目的主线是：`NuGet 自动选择 x64 并部署原生运行库 -> DI 注册 -> IRfcClient 持有 scope 内 ConfigId -> RfcClient 创建 RfcSession -> 获取/缓存 SAP Destination -> 通过属性映射调用 SAP RFC -> 将输出转换成 typed response -> 通过 monitor 暴露调用生命周期`。

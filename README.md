@@ -7,6 +7,7 @@ It targets `.NET 10.0`. The library supports multiple SAP RFC connection configs
 Additional documentation:
 
 - [Project analysis and maintenance guide](docs/PROJECT_ANALYSIS.en-US.md)
+- [File dependency roadmap](docs/file-dependency-roadmap.en-US.md)
 - [中文项目分析与维护指南](docs/PROJECT_ANALYSIS.zh-CN.md)
 - [中文版 README](README.zh-CN.md)
 
@@ -25,10 +26,10 @@ Additional documentation:
 Install the NuGet package:
 
 ```bash
-dotnet add package RfcClient
+dotnet add package RfcClient --version 1.0.1
 ```
 
-The package targets `net10.0`.
+The package targets `net10.0` and requires Windows x64 because the bundled SAP NCo assemblies are AMD64 binaries. Starting with version 1.0.1, the package automatically changes an unspecified or `AnyCPU` consumer target to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` properties.
 
 ## Configuration
 
@@ -419,7 +420,12 @@ libs/sapnco.dll
 libs/sapnco_utils.dll
 ```
 
-During build, these files are copied to the output root directory alongside `RfcClient.dll`. They are also included in the NuGet package under `lib/net10.0/`.
+During a source build, these files are copied to the output root directory alongside `RfcClient.dll`. In the NuGet package, managed AMD64 assemblies are stored under `lib/net10.0/`, while `ijwhost.dll` is stored under `runtimes/win-x64/native/`.
+
+The package also contains:
+
+- `buildTransitive/RfcClient.props`: defaults an unspecified or `AnyCPU` consumer to `x64`.
+- `buildTransitive/RfcClient.targets`: copies `ijwhost.dll` to normal build and publish output directories.
 
 Configuration options: the library exposes two timing options in `RfcOptions`:
 
@@ -430,7 +436,7 @@ You can set these in `appsettings.json` or via code when registering the service
 
 ## XML Documentation
 
-The library generates an XML documentation file (`RfcClient.xml`) alongside the assembly in the build output. IDEs such as Visual Studio and JetBrains Rider automatically pick it up to provide inline Chinese and English descriptions for public types and members.
+The library generates an XML documentation file (`RfcClient.xml`) alongside the assembly in the build output. IDEs such as Visual Studio and JetBrains Rider automatically pick it up to provide inline Chinese descriptions for public types and members.
 
 ## Build And Pack
 
@@ -442,5 +448,5 @@ dotnet pack .\RfcClient.csproj -c Release
 The package is generated under:
 
 ```text
-bin/Release/RfcClient.0.1.0.nupkg
+bin/Release/RfcClient.1.0.1.nupkg
 ```

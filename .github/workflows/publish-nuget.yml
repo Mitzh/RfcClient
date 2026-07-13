@@ -2,6 +2,9 @@ name: Publish NuGet package
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -26,7 +29,7 @@ jobs:
         run: dotnet restore RfcClient.csproj
 
       - name: Pack
-        run: dotnet pack RfcClient.csproj --configuration Release --no-restore --output artifacts
+        run: dotnet pack RfcClient.csproj --configuration Release --no-restore --property:Platform=x64 --output artifacts
 
       - name: NuGet login with trusted publishing
         id: login
@@ -36,8 +39,13 @@ jobs:
 
       - name: Publish to NuGet.org
         shell: pwsh
-        run: >-
-          dotnet nuget push "artifacts/RfcClient.1.0.0.nupkg"
-          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
-          --source "https://api.nuget.org/v3/index.json"
-          --skip-duplicate
+        run: |
+          $packages = @(Get-ChildItem artifacts -Filter "RfcClient.*.nupkg")
+          if ($packages.Count -ne 1) {
+            throw "Expected exactly one NuGet package, found $($packages.Count)."
+          }
+          $package = $packages[0]
+          dotnet nuget push $package.FullName `
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" `
+            --source "https://api.nuget.org/v3/index.json" `
+            --skip-duplicate

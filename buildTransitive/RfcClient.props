@@ -1,0 +1,6 @@
+<Project>
+  <!-- SAP NCo cpc4n.dll is an AMD64 assembly, so consumers must compile for x64. -->
+  <PropertyGroup>
+    <PlatformTarget Condition="'$(PlatformTarget)' == '' Or '$(PlatformTarget)' == 'AnyCPU' Or '$(PlatformTarget)' == 'Any CPU'">x64</PlatformTarget>
+  </PropertyGroup>
+</Project>

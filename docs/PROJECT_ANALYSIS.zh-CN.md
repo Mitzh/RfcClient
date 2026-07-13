@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-`RfcClient` 是一个面向 .NET 10 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+`RfcClient` 1.0.1 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
 公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 构造注入和 Autofac Module 属性注入；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
@@ -12,6 +12,14 @@
 - `ijwhost.dll`
 - `sapnco.dll`
 - `sapnco_utils.dll`
+
+`cpc4n.dll`、`sapnco.dll` 和 `sapnco_utils.dll` 都是 AMD64 托管程序集，因此项目和运行进程必须使用 x64。NuGet 包通过 `buildTransitive/RfcClient.props` 自动将未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`，无需消费项目手工添加 `Platforms` 或 `PlatformTarget`。
+
+包内运行时布局如下：
+
+- `lib/net10.0/`：`RfcClient.dll`、XML 文档及三个 AMD64 托管程序集。
+- `runtimes/win-x64/native/ijwhost.dll`：C++/CLI 所需的原生运行库。
+- `buildTransitive/RfcClient.targets`：将 `ijwhost.dll` 复制到消费项目的构建和发布目录。
 
 ## 架构说明
 
@@ -91,6 +99,14 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 
 ## 本次重构内容
 
+1.0.1 平台与打包调整：
+
+- 将项目和解决方案平台统一为 `x64`。
+- 增加传递构建配置，使消费项目无需显式声明 `Platforms` 和 `PlatformTarget`。
+- 将原生 `ijwhost.dll` 从 `lib/net10.0/` 移至 `runtimes/win-x64/native/`，避免 NuGet 将其误当作托管程序集解析。
+- 增加传递复制目标，确保普通构建和发布目录都包含 `ijwhost.dll`。
+- 将根命名空间统一为 `mitzh`，抽象接口统一为 `mitzh.Abstractions`。
+
 本次维护调整了作用域级配置切换 API：
 
 - 在 `IRfcClient` 上新增 `ConfigId`。
@@ -114,14 +130,16 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 构建：
 
 ```bash
-dotnet build .\RfcClient.sln
+dotnet build .\RfcClient.sln -c Release
 ```
 
 打包：
 
 ```bash
-dotnet pack .\RfcClient.csproj -c Release
+dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
+
+输出包为 `bin/Release/RfcClient.1.0.1.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
 
 ## 维护建议
 
@@ -129,4 +147,4 @@ dotnet pack .\RfcClient.csproj -c Release
 - 连接字符串和密码属于敏感信息，不要记录完整连接字符串。
 - 扩展映射能力前，优先为 `RfcOptions`、`RfcClient` 和 `RfcTypeConverter` 增加单元测试。
 - 如果需要支持旧版本业务系统，应评估多目标框架，而不是只修改 README 文档。
-- SAP NCo 文件具有平台相关性，发布前应确认目标系统上的运行时文件布局和架构一致。
+- SAP NCo 文件仅支持 Windows x64；发布前应使用一个没有显式平台设置的空白消费项目验证自动架构选择、构建输出和发布输出。

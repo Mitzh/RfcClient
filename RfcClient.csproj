@@ -3,12 +3,13 @@
     <PropertyGroup>
         <TargetFrameworks>net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
+        <Platforms>x64</Platforms>
         <PlatformTarget>x64</PlatformTarget>
         <AssemblyName>RfcClient</AssemblyName>
         <RootNamespace>mitzh</RootNamespace>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageId>RfcClient</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>mitzh</Authors>
         <Company>mitzh.com</Company>
         <Description>A DI-friendly SAP RFC client wrapper for SAP .NET Connector.</Description>
@@ -48,8 +49,10 @@
       <None Include="icon.png" Pack="true" PackagePath="\" />
       <None Remove="docs\**\*.md" />
       <None Include="docs\**\*.md" Pack="true" PackagePath="docs\" />
+      <None Include="buildTransitive\RfcClient.props" Pack="true" PackagePath="buildTransitive\RfcClient.props" />
+      <None Include="buildTransitive\RfcClient.targets" Pack="true" PackagePath="buildTransitive\RfcClient.targets" />
       <None Include="libs\cpc4n.dll" Pack="true" PackagePath="lib\net10.0\" />
-      <None Include="libs\ijwhost.dll" Pack="true" PackagePath="lib\net10.0\" />
+      <None Include="libs\ijwhost.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
       <None Include="libs\sapnco.dll" Pack="true" PackagePath="lib\net10.0\" />
       <None Include="libs\sapnco_utils.dll" Pack="true" PackagePath="lib\net10.0\" />
     </ItemGroup>
