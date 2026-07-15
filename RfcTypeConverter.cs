@@ -118,11 +118,17 @@ public static class RfcTypeConverter
     }
 
     /// <summary>
-    ///   设置单个 RFC 输入参数。数组和列表在目标参数为 TABLE 时逐行写入。
+    ///   设置单个 RFC 输入参数。对象映射到 STRUCTURE，数组和列表映射到 TABLE。
     /// </summary>
     private static void SetInputParameter(IRfcFunction function, string key, object value)
     {
         var parameter = function[key];
+        if (parameter.Metadata.DataType == RfcDataType.STRUCTURE)
+        {
+            SetStructureValue(parameter.GetStructure(), value, key);
+            return;
+        }
+
         if (parameter.Metadata.DataType == RfcDataType.TABLE && IsTableCollection(value))
         {
             SetTableValue(parameter.GetTable(), (IEnumerable)value, key);
@@ -168,45 +174,45 @@ public static class RfcTypeConverter
             }
 
             table.Append();
-            SetTableRow(table.CurrentRow, row, parameterName, rowIndex);
+            SetStructureValue(table.CurrentRow, row, $"{parameterName}[{rowIndex}]");
             rowIndex++;
         }
     }
 
     /// <summary>
-    ///   将对象或字典中的字段写入当前 RFC TABLE 行。
+    ///   将对象或字典中的字段写入 RFC STRUCTURE。
     /// </summary>
-    private static void SetTableRow(IRfcStructure targetRow, object sourceRow, string parameterName, int rowIndex)
+    private static void SetStructureValue(IRfcStructure target, object source, string context)
     {
-        if (sourceRow is IDictionary dictionary)
+        if (source is IDictionary dictionary)
         {
             foreach (DictionaryEntry entry in dictionary)
             {
                 if (entry.Key is not string key || string.IsNullOrWhiteSpace(key))
                 {
                     throw new ArgumentException(
-                        $"RFC table parameter '{parameterName}' row {rowIndex} contains an invalid dictionary key.",
-                        parameterName);
+                        $"RFC structure '{context}' contains an invalid dictionary key.",
+                        context);
                 }
 
                 if (entry.Value is not null and not DBNull)
                 {
-                    targetRow.SetValue(key, ConvertToSapValue(entry.Value));
+                    SetStructureField(target, key, entry.Value, context);
                 }
             }
 
             return;
         }
 
-        var properties = GetColumnProperties(sourceRow.GetType())
+        var properties = GetColumnProperties(source.GetType())
             .Where(property => property.CanRead)
             .ToArray();
         if (properties.Length == 0)
         {
             throw new ArgumentException(
-                $"RFC table parameter '{parameterName}' row type '{sourceRow.GetType().FullName}' " +
+                $"RFC structure '{context}' source type '{source.GetType().FullName}' " +
                 "must contain at least one readable property with a ColumnAttribute.",
-                parameterName);
+                context);
         }
 
         foreach (var property in properties)
@@ -217,12 +223,33 @@ public static class RfcTypeConverter
                 continue;
             }
 
-            var value = property.GetValue(sourceRow);
+            var value = property.GetValue(source);
             if (value is not null and not DBNull)
             {
-                targetRow.SetValue(key, ConvertToSapValue(value));
+                SetStructureField(target, key, value, context);
             }
         }
+    }
+
+    /// <summary>
+    ///   根据 RFC 字段元数据写入普通值、嵌套 STRUCTURE 或嵌套 TABLE。
+    /// </summary>
+    private static void SetStructureField(IRfcStructure target, string key, object value, string context)
+    {
+        var field = target[key];
+        if (field.Metadata.DataType == RfcDataType.STRUCTURE)
+        {
+            SetStructureValue(field.GetStructure(), value, $"{context}.{key}");
+            return;
+        }
+
+        if (field.Metadata.DataType == RfcDataType.TABLE && IsTableCollection(value))
+        {
+            SetTableValue(field.GetTable(), (IEnumerable)value, $"{context}.{key}");
+            return;
+        }
+
+        target.SetValue(key, ConvertToSapValue(value));
     }
 
     /// <summary>

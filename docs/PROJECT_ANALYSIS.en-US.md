@@ -2,7 +2,7 @@
 
 ## Project Snapshot
 
-`RfcClient` 1.0.5 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+`RfcClient` 1.0.6 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
 Public implementation types use the `Mitzh` namespace, while abstractions use `Mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
@@ -128,6 +128,11 @@ Version 1.0.5 RFC TABLE input mapping:
 - Row objects use `[Column]` mappings; dictionary rows use their string keys as SAP field names.
 - `byte[]` remains a scalar RFC value and is not treated as a table collection.
 
+Version 1.0.6 RFC STRUCTURE input mapping:
+
+- Objects and string-key dictionaries are mapped field by field into `IRfcStructure` parameters.
+- Nested STRUCTURE and TABLE fields reuse the same recursive input conversion rules.
+
 Following changes were made in this maintenance pass:
 
 - Renamed `ScopedRfcClient` class to `RfcClient`; the source file was renamed accordingly.
@@ -167,7 +172,7 @@ Package:
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-The output package is `bin/Release/RfcClient.1.0.5.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
+The output package is `bin/Release/RfcClient.1.0.6.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
 
 ## Maintenance Notes
 

@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-`RfcClient` 1.0.5 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+`RfcClient` 1.0.6 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
 公开实现类型位于 `Mitzh` 命名空间，抽象接口位于 `Mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
@@ -125,6 +125,11 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 - 行对象使用 `[Column]` 映射，字典行使用字符串键作为 SAP 字段名。
 - `byte[]` 继续作为普通 RFC 值处理，不会被误判为表集合。
 
+1.0.6 RFC STRUCTURE 输入映射：
+
+- 对象和字符串键字典会逐字段映射到 `IRfcStructure` 参数。
+- 嵌套 STRUCTURE 和 TABLE 字段复用相同的递归输入转换规则。
+
 本次维护调整了作用域级配置切换 API：
 
 - 在 `IRfcClient` 上新增 `ConfigId`。
@@ -157,7 +162,7 @@ dotnet build .\RfcClient.sln -c Release
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-输出包为 `bin/Release/RfcClient.1.0.5.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
+输出包为 `bin/Release/RfcClient.1.0.6.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
 
 ## 维护建议
 
