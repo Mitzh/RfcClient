@@ -1,6 +1,6 @@
-using mitzh;
+using Mitzh;
 
-namespace mitzh.Abstractions;
+namespace Mitzh.Abstractions;
 
 /// <summary>
 ///   SAP RFC 配置提供程序接口。

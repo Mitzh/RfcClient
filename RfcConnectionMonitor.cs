@@ -1,6 +1,6 @@
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 连接监视器的默认空实现。

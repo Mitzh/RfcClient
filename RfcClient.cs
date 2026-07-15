@@ -1,7 +1,7 @@
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 using Microsoft.Extensions.Configuration;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   SAP RFC 客户端的作用域实现。

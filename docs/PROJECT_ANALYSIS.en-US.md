@@ -4,7 +4,7 @@
 
 `RfcClient` 1.0.3 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
-Public implementation types use the `mitzh` namespace, while abstractions use `mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
+Public implementation types use the `Mitzh` namespace, while abstractions use `Mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
 The package expects SAP NCo runtime files under `libs/`:
 
@@ -108,7 +108,7 @@ Version 1.0.1 platform and packaging changes:
 - Added transitive build configuration so consumers do not declare `Platforms` or `PlatformTarget` explicitly.
 - Moved native `ijwhost.dll` from `lib/net10.0/` to `runtimes/win-x64/native/`, preventing NuGet from treating it as a managed assembly.
 - Added a transitive copy target so normal build and publish outputs both contain `ijwhost.dll`.
-- Standardized the root namespace on `mitzh` and abstractions on `mitzh.Abstractions`.
+- Standardized the root namespace on `Mitzh` and abstractions on `Mitzh.Abstractions`.
 
 Version 1.0.2 Autofac configuration-binding fix:
 

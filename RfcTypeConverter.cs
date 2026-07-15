@@ -5,7 +5,7 @@ using System.Reflection;
 
 using SAP.Middleware.Connector;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 类型转换器。

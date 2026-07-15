@@ -2,9 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 客户端服务注册扩展方法。

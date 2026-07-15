@@ -1,6 +1,6 @@
-using mitzh;
+using Mitzh;
 
-namespace mitzh.Abstractions;
+namespace Mitzh.Abstractions;
 
 /// <summary>
 ///   RFC 连接监视器接口。

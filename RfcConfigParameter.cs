@@ -1,4 +1,4 @@
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   SAP RFC 连接配置参数。

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 配置提供程序的默认实现。

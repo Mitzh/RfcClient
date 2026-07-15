@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   SAP RFC 客户端选项配置。

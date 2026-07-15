@@ -1,4 +1,4 @@
-namespace mitzh.Abstractions;
+namespace Mitzh.Abstractions;
 
 /// <summary>
 ///   SAP RFC 客户端接口。

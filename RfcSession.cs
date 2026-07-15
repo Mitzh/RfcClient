@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Collections;
 using SAP.Middleware.Connector;
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 会话。

@@ -19,7 +19,7 @@
 
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库。它将 SAP .NET Connector 的 destination 注册、连接缓存、RFC function 创建、请求/响应映射和调用监控包装成一个 scoped `IRfcClient`。
 
-公开命名空间为 `mitzh`，接口命名空间为 `mitzh.Abstractions`。客户端支持 Microsoft DI 与 Autofac 构造函数注入，也保留属性注入入口。
+公开命名空间为 `Mitzh`，接口命名空间为 `Mitzh.Abstractions`。客户端支持 Microsoft DI 与 Autofac 构造函数注入，也保留属性注入入口。
 
 项目面向 `net10.0` 和 Windows x64。从 NuGet 1.0.1 开始，传递构建文件会自动把未指定平台或使用 `AnyCPU` 的消费项目调整为 `x64`；当前发布版本为 1.0.3。
 

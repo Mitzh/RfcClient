@@ -1,6 +1,6 @@
 using SAP.Middleware.Connector;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   包含 RFC 目标（Destination）解析完成后的上下文信息。

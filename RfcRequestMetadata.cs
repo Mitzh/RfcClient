@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 
-namespace mitzh;
+namespace Mitzh;
 
 /// <summary>
 ///   RFC 请求元数据工具类。

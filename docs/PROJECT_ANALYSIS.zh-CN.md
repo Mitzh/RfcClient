@@ -4,7 +4,7 @@
 
 `RfcClient` 1.0.3 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
-公开实现类型位于 `mitzh` 命名空间，抽象接口位于 `mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
+公开实现类型位于 `Mitzh` 命名空间，抽象接口位于 `Mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
 项目要求 SAP NCo 运行时文件位于 `libs/` 目录：
 
@@ -105,7 +105,7 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(request);
 - 增加传递构建配置，使消费项目无需显式声明 `Platforms` 和 `PlatformTarget`。
 - 将原生 `ijwhost.dll` 从 `lib/net10.0/` 移至 `runtimes/win-x64/native/`，避免 NuGet 将其误当作托管程序集解析。
 - 增加传递复制目标，确保普通构建和发布目录都包含 `ijwhost.dll`。
-- 将根命名空间统一为 `mitzh`，抽象接口统一为 `mitzh.Abstractions`。
+- 将根命名空间统一为 `Mitzh`，抽象接口统一为 `Mitzh.Abstractions`。
 
 1.0.2 Autofac 配置绑定修复：
 

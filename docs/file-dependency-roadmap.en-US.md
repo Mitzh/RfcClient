@@ -19,7 +19,7 @@ This roadmap is based on the repository source files, project file, solution fil
 
 `RfcClient` is a dependency-injection-friendly SAP RFC client wrapper. It packages SAP .NET Connector destination registration, destination caching, RFC function creation, request/response mapping, and invocation monitoring behind a scoped `IRfcClient`.
 
-The public implementation namespace is `mitzh`, and the interface namespace is `mitzh.Abstractions`. The client supports Microsoft DI and Autofac constructor injection and retains property-injection entry points.
+The public implementation namespace is `Mitzh`, and the interface namespace is `Mitzh.Abstractions`. The client supports Microsoft DI and Autofac constructor injection and retains property-injection entry points.
 
 The project targets `net10.0` and Windows x64. Starting with NuGet 1.0.1, transitive build files change an unspecified or `AnyCPU` consumer to `x64` automatically; the current release is 1.0.3.
 
