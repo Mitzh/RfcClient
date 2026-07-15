@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-`RfcClient` 1.0.3 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
+`RfcClient` 1.0.4 是一个面向 .NET 10 和 Windows x64 的类库，用于在 SAP .NET Connector (NCo) 之上提供依赖注入、命名 RFC 配置、强类型请求/响应映射、作用域级配置切换，以及连接和调用监控钩子。
 
 公开实现类型位于 `Mitzh` 命名空间，抽象接口位于 `Mitzh.Abstractions`。`RfcClient` 同时支持 Microsoft DI 和 Autofac 构造注入，也保留属性注入入口；当前调用入口为 `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`。
 
@@ -151,7 +151,7 @@ dotnet build .\RfcClient.sln -c Release
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-输出包为 `bin/Release/RfcClient.1.0.3.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
+输出包为 `bin/Release/RfcClient.1.0.4.nupkg`。发布由 `.github/workflows/publish-nuget.yml` 完成；推送 `v*` 版本标签或手动触发工作流都会使用 NuGet Trusted Publishing 上传包。
 
 ## 维护建议
 

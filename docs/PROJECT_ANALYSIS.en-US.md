@@ -2,7 +2,7 @@
 
 ## Project Snapshot
 
-`RfcClient` 1.0.3 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+`RfcClient` 1.0.4 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
 Public implementation types use the `Mitzh` namespace, while abstractions use `Mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
@@ -161,7 +161,7 @@ Package:
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-The output package is `bin/Release/RfcClient.1.0.3.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
+The output package is `bin/Release/RfcClient.1.0.4.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
 
 ## Maintenance Notes
 
