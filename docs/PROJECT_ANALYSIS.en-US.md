@@ -2,7 +2,7 @@
 
 ## Project Snapshot
 
-`RfcClient` 1.0.6 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
+`RfcClient` 1.0.7 is a .NET 10 and Windows x64 class library that wraps SAP .NET Connector (NCo) with dependency injection, named RFC configurations, typed request/response mapping, scoped configuration switching, and monitoring hooks.
 
 Public implementation types use the `Mitzh` namespace, while abstractions use `Mitzh.Abstractions`. `RfcClient` supports Microsoft DI and Autofac constructor injection and retains property-injection entry points. Its current invocation entry point is `Invoke<TOut>(object input, string functionName = null, bool forceNew = false, string configId = null)`.
 
@@ -133,6 +133,12 @@ Version 1.0.6 RFC STRUCTURE input mapping:
 - Objects and string-key dictionaries are mapped field by field into `IRfcStructure` parameters.
 - Nested STRUCTURE and TABLE fields reuse the same recursive input conversion rules.
 
+Version 1.0.7 BCD input precision handling:
+
+- `decimal` inputs are automatically rounded away from zero to the scale declared by RFC BCD metadata.
+- The valid range is calculated from the BCD byte length and scale after rounding; overflows produce a clear exception with the full field path and allowed range.
+- Scalar parameters, STRUCTURE fields, and TABLE row fields use the same BCD conversion rules.
+
 Following changes were made in this maintenance pass:
 
 - Renamed `ScopedRfcClient` class to `RfcClient`; the source file was renamed accordingly.
@@ -172,7 +178,7 @@ Package:
 dotnet pack .\RfcClient.csproj -c Release -p:Platform=x64 -o .\bin\Release
 ```
 
-The output package is `bin/Release/RfcClient.1.0.6.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
+The output package is `bin/Release/RfcClient.1.0.7.nupkg`. `.github/workflows/publish-nuget.yml` publishes through NuGet Trusted Publishing when a `v*` version tag is pushed or the workflow is dispatched manually.
 
 ## Maintenance Notes
 

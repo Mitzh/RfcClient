@@ -135,7 +135,7 @@ public static class RfcTypeConverter
             return;
         }
 
-        function.SetValue(key, ConvertToSapValue(value));
+        function.SetValue(key, ConvertToSapValue(value, parameter.Metadata, key));
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public static class RfcTypeConverter
             return;
         }
 
-        target.SetValue(key, ConvertToSapValue(value));
+        target.SetValue(key, ConvertToSapValue(value, field.Metadata, $"{context}.{key}"));
     }
 
     /// <summary>
@@ -337,15 +337,81 @@ public static class RfcTypeConverter
     ///   处理日期和时间类型的特殊转换。
     /// </summary>
     /// <param name="value">要转换的 .NET 值。</param>
+    /// <param name="metadata">目标 RFC 字段的类型元数据。</param>
+    /// <param name="context">用于错误消息的 RFC 参数或字段路径。</param>
     /// <returns>转换后适用于 RFC 调用的值。</returns>
-    private static object ConvertToSapValue(object value)
+    private static object ConvertToSapValue(object value, RfcElementMetadata metadata, string context)
     {
         return value switch
         {
             DateTime dateTime => dateTime.ToString(SapDateFormat, CultureInfo.InvariantCulture),
             TimeSpan timeSpan => timeSpan.ToString(SapTimeFormat, CultureInfo.InvariantCulture),
+            decimal decimalValue when metadata.DataType == RfcDataType.BCD =>
+                AdjustBcdValue(decimalValue, metadata, context),
             _ => value
         };
+    }
+
+    /// <summary>
+    ///   Adjusts a decimal value to the scale declared by an SAP BCD field and validates its range.
+    /// </summary>
+    private static decimal AdjustBcdValue(decimal value, RfcElementMetadata metadata, string context)
+    {
+        var decimals = metadata.Decimals;
+        var byteLength = metadata.NucLength;
+        if (byteLength <= 0 || decimals is < 0 or > 28)
+        {
+            throw new InvalidOperationException(
+                $"RFC field '{context}' has invalid BCD metadata [{byteLength}:{decimals}].");
+        }
+
+        var adjustedValue = decimal.Round(value, decimals, MidpointRounding.AwayFromZero);
+        var integerDigits = (byteLength * 2) - 1 - decimals;
+
+        // System.Decimal has at most 29 significant digits. If the SAP field allows at least
+        // 29 integer digits, every possible Decimal value fits after scale adjustment.
+        if (integerDigits >= 29)
+        {
+            return adjustedValue;
+        }
+
+        var maximumValue = DecimalPowerOfTen(integerDigits) - DecimalPowerOfTen(-decimals);
+        if (adjustedValue < -maximumValue || adjustedValue > maximumValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                context,
+                adjustedValue,
+                $"RFC field '{context}' cannot contain {adjustedValue.ToString(CultureInfo.InvariantCulture)}. " +
+                $"BCD[{byteLength}:{decimals}] allows values from " +
+                $"{(-maximumValue).ToString(CultureInfo.InvariantCulture)} to " +
+                $"{maximumValue.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return adjustedValue;
+    }
+
+    /// <summary>
+    ///   Returns an exact decimal power of ten for the exponent range used by SAP BCD metadata.
+    /// </summary>
+    private static decimal DecimalPowerOfTen(int exponent)
+    {
+        var result = 1m;
+        if (exponent >= 0)
+        {
+            for (var i = 0; i < exponent; i++)
+            {
+                result *= 10m;
+            }
+        }
+        else
+        {
+            for (var i = 0; i > exponent; i--)
+            {
+                result /= 10m;
+            }
+        }
+
+        return result;
     }
 
     /// <summary>

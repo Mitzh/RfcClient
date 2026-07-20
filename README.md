@@ -25,7 +25,7 @@
 安装 NuGet 包：
 
 ```bash
-dotnet add package RfcClient --version 1.0.6
+dotnet add package RfcClient --version 1.0.7
 ```
 
 该包面向 `net10.0`，并且仅支持 Windows x64，因为随包提供的 SAP NCo 程序集是 AMD64 二进制文件。从 1.0.1 版本开始，当调用项目未显式指定目标平台或使用 `AnyCPU` 时，包会自动采用 `x64`；消费项目不需要添加 `Platforms` 或 `PlatformTarget` 属性。
@@ -173,6 +173,8 @@ builder.RegisterModule(new RfcModule(configuration.GetSection("Rfc")));
 
 在请求类型上使用 `[Table]` 声明 RFC 函数名。在需要映射的属性上使用 `[Column]` 指定 SAP RFC 参数字段名。
 输入映射时，`[Column]` 名称为 `null`、空字符串或纯空白的属性会被忽略；属性值为 `null` 或 `DBNull` 时同样会被忽略。
+
+当目标 SAP 字段为 BCD 时，`decimal` 输入会根据字段元数据中的小数位数自动进行远离零舍入。舍入后的值如果超出 BCD 整数位容量，会抛出包含字段路径、实际值和允许范围的 `ArgumentOutOfRangeException`，不会静默截断。
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -467,5 +469,5 @@ dotnet pack .\RfcClient.csproj -c Release
 生成的 NuGet 包位于：
 
 ```text
-bin/Release/RfcClient.1.0.6.nupkg
+bin/Release/RfcClient.1.0.7.nupkg
 ```
