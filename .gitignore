@@ -18,3 +18,6 @@ sapnco_utils.dll
 
 # Local demo/runtime configuration.
 appsettings.json
+
+# WorkBuddy workspace data
+.workbuddy/

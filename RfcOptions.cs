@@ -31,6 +31,18 @@ public class RfcOptions
     public TimeSpan DestinationIdleTimeout { get; set; } = TimeSpan.FromMinutes(10);
 
     /// <summary>
+    ///   默认配置标识的缓存。RfcOptions 在配置绑定后被视为不可变，缓存结果可安全复用。
+    /// </summary>
+    private string _cachedDefaultConfigId;
+    private bool _defaultConfigIdCached;
+
+    /// <summary>
+    ///   所有 RFC 连接配置的只读字典缓存。
+    /// </summary>
+    private IReadOnlyDictionary<string, RfcConfigParameter> _cachedDestinations;
+    private bool _destinationsCached;
+
+    /// <summary>
     ///   获取默认的配置标识。
     ///   如果显式设置了 ConfigId 则返回该值；
     ///   否则从 RfcConnectionConfigs 中查找标记为 IsDefault 的项；
@@ -38,6 +50,21 @@ public class RfcOptions
     /// </summary>
     /// <returns>默认配置标识字符串。</returns>
     public string GetConfigId()
+    {
+        if (_defaultConfigIdCached)
+        {
+            return _cachedDefaultConfigId;
+        }
+
+        _cachedDefaultConfigId = ResolveDefaultConfigId();
+        _defaultConfigIdCached = true;
+        return _cachedDefaultConfigId;
+    }
+
+    /// <summary>
+    ///   计算默认配置标识。仅在缓存未命中时执行。
+    /// </summary>
+    private string ResolveDefaultConfigId()
     {
         ValidateConfigIds();
 
@@ -67,6 +94,11 @@ public class RfcOptions
     /// <returns>包含所有 RFC 连接参数的只读字典。</returns>
     public IReadOnlyDictionary<string, RfcConfigParameter> GetRfcDestinations()
     {
+        if (_destinationsCached)
+        {
+            return _cachedDestinations;
+        }
+
         ValidateConfigIds();
 
         var destinations = new Dictionary<string, RfcConfigParameter>(StringComparer.OrdinalIgnoreCase);
@@ -75,6 +107,8 @@ public class RfcOptions
             destinations.Add(config.ConfigId, config.ToRfcConfigParameter());
         }
 
+        _cachedDestinations = destinations;
+        _destinationsCached = true;
         return destinations;
     }
 

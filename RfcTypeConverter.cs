@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.Reflection;
@@ -64,6 +65,16 @@ public static class RfcTypeConverter
     };
 
     /// <summary>
+    ///   每个类型中带有 ColumnAttribute 的可读属性缓存，避免每次调用时重复反射。
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _readableColumnProperties = new();
+
+    /// <summary>
+    ///   每个类型中带有 ColumnAttribute 的可写属性映射缓存（列名 → 属性），避免每次调用时重复反射和建字典。
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _writableColumnMap = new();
+
+    /// <summary>
     ///   将 .NET 对象的属性值设置到 RFC 函数中作为输入参数。
     ///   只处理标记了 ColumnAttribute 的属性，并自动处理日期和时间的格式转换。
     /// </summary>
@@ -75,7 +86,7 @@ public static class RfcTypeConverter
         ArgumentNullException.ThrowIfNull(function);
         ArgumentNullException.ThrowIfNull(input);
 
-        foreach (var property in GetColumnProperties(input.GetType()).Where(t => t.CanRead))
+        foreach (var property in GetReadableColumnProperties(input.GetType()))
         {
             var key = GetColumnName(property);
             if (key is null)
@@ -204,9 +215,7 @@ public static class RfcTypeConverter
             return;
         }
 
-        var properties = GetColumnProperties(source.GetType())
-            .Where(property => property.CanRead)
-            .ToArray();
+        var properties = GetReadableColumnProperties(source.GetType());
         if (properties.Length == 0)
         {
             throw new ArgumentException(
@@ -265,9 +274,7 @@ public static class RfcTypeConverter
         ArgumentNullException.ThrowIfNull(function);
 
         var result = new T();
-        var properties = GetColumnProperties(typeof(T))
-            .Where(p => p.CanWrite)
-            .ToDictionary(GetRequiredColumnName, StringComparer.OrdinalIgnoreCase);
+        var properties = GetWritableColumnMap(typeof(T));
 
         foreach (var parameter in function)
         {
@@ -296,6 +303,26 @@ public static class RfcTypeConverter
     {
         return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.GetCustomAttribute<ColumnAttribute>() is not null);
+    }
+
+    /// <summary>
+    ///   获取类型中带有 ColumnAttribute 的可读属性，结果按类型缓存。
+    /// </summary>
+    private static PropertyInfo[] GetReadableColumnProperties(Type type)
+    {
+        return _readableColumnProperties.GetOrAdd(type, t =>
+            GetColumnProperties(t).Where(p => p.CanRead).ToArray());
+    }
+
+    /// <summary>
+    ///   获取类型中带有 ColumnAttribute 的可写属性映射（列名 → 属性），结果按类型缓存。
+    /// </summary>
+    private static Dictionary<string, PropertyInfo> GetWritableColumnMap(Type type)
+    {
+        return _writableColumnMap.GetOrAdd(type, t =>
+            GetColumnProperties(t)
+                .Where(p => p.CanWrite)
+                .ToDictionary(GetRequiredColumnName, StringComparer.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -491,9 +518,7 @@ public static class RfcTypeConverter
         var result = Activator.CreateInstance(effectiveType)
             ?? throw new InvalidOperationException($"Unable to create '{effectiveType.FullName}'.");
 
-        var properties = GetColumnProperties(effectiveType)
-            .Where(p => p.CanWrite)
-            .ToDictionary(GetRequiredColumnName, StringComparer.OrdinalIgnoreCase);
+        var properties = GetWritableColumnMap(effectiveType);
 
         foreach (var field in structure)
         {

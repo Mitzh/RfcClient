@@ -77,16 +77,24 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
 
     /// <summary>
     ///   清理超过空闲超时时间未使用的缓存目标连接。
+    ///   先快照待清理的键，再逐个移除，避免遍历时与其他线程的缓存写入产生竞态。
     /// </summary>
     private static void CleanupIdleDestinations()
     {
         var now = DateTime.UtcNow;
+        var keysToRemove = new List<string>();
+
         foreach (var kvp in _lastAccessTime)
         {
             if (now - kvp.Value > _destinationIdleTimeout)
             {
-                RemoveCachedDestination(kvp.Key);
+                keysToRemove.Add(kvp.Key);
             }
+        }
+
+        foreach (var key in keysToRemove)
+        {
+            RemoveCachedDestination(key);
         }
     }
 
