@@ -1,5 +1,7 @@
 # RfcClient
 
+[![NuGet](https://img.shields.io/nuget/v/RfcClient?logo=nuget&label=NuGet)](https://www.nuget.org/packages/RfcClient) [![GitHub](https://img.shields.io/badge/GitHub-Mitzh%2FRfcClient-181717?logo=github)](https://github.com/Mitzh/RfcClient) [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Mitzh/RfcClient/blob/main/LICENSE)
+
 `RfcClient` is a DI-friendly SAP RFC client wrapper for SAP .NET Connector.
 
 It targets `.NET 10.0`. The library supports multiple SAP RFC connection configs, request-scoped `ConfigId` switching, typed request/response mapping, and connection/invocation monitoring hooks.
@@ -26,7 +28,7 @@ Additional documentation:
 Install the NuGet package:
 
 ```bash
-dotnet add package RfcClient --version 1.0.8
+dotnet add package RfcClient --version 1.0.9
 ```
 
 The package targets `net10.0` and requires Windows x64 because the bundled SAP NCo assemblies are AMD64 binaries. Starting with version 1.0.1, the package automatically changes an unspecified or `AnyCPU` consumer target to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` properties.
@@ -470,5 +472,5 @@ dotnet pack .\RfcClient.csproj -c Release
 The package is generated under:
 
 ```text
-bin/Release/RfcClient.1.0.8.nupkg
+bin/Release/RfcClient.1.0.9.nupkg
 ```

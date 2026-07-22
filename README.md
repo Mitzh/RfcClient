@@ -1,5 +1,7 @@
 # RfcClient
 
+[![NuGet](https://img.shields.io/nuget/v/RfcClient?logo=nuget&label=NuGet)](https://www.nuget.org/packages/RfcClient) [![GitHub](https://img.shields.io/badge/GitHub-Mitzh%2FRfcClient-181717?logo=github)](https://github.com/Mitzh/RfcClient) [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Mitzh/RfcClient/blob/main/LICENSE)
+
 `RfcClient` 是一个面向依赖注入的 SAP RFC 客户端封装库，基于 SAP .NET Connector (NCo) 构建。
 
 目标框架为 `.NET 10.0`。支持多 SAP RFC 连接配置、请求作用域内的 `ConfigId` 切换、强类型请求/响应映射，以及连接与调用监控扩展点。
@@ -25,7 +27,7 @@
 安装 NuGet 包：
 
 ```bash
-dotnet add package RfcClient --version 1.0.8
+dotnet add package RfcClient --version 1.0.9
 ```
 
 该包面向 `net10.0`，并且仅支持 Windows x64，因为随包提供的 SAP NCo 程序集是 AMD64 二进制文件。从 1.0.1 版本开始，当调用项目未显式指定目标平台或使用 `AnyCPU` 时，包会自动采用 `x64`；消费项目不需要添加 `Platforms` 或 `PlatformTarget` 属性。
@@ -469,5 +471,5 @@ dotnet pack .\RfcClient.csproj -c Release
 生成的 NuGet 包位于：
 
 ```text
-bin/Release/RfcClient.1.0.8.nupkg
+bin/Release/RfcClient.1.0.9.nupkg
 ```
