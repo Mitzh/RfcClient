@@ -27,7 +27,7 @@
 安装 NuGet 包：
 
 ```bash
-dotnet add package RfcClient --version 1.0.10
+dotnet add package RfcClient --version 1.0.11
 ```
 
 该包面向 `net10.0`，并且仅支持 Windows x64，因为随包提供的 SAP NCo 程序集是 AMD64 二进制文件。从 1.0.1 版本开始，当调用项目未显式指定目标平台或使用 `AnyCPU` 时，包会自动采用 `x64`；消费项目不需要添加 `Platforms` 或 `PlatformTarget` 属性。
@@ -92,7 +92,7 @@ MessageServerPort
 通过 `IServiceCollection` 注册客户端。可显式传入配置，也可让客户端自动从 DI 容器解析 `IConfiguration`：
 
 ```csharp
-using mitzh;
+using Mitzh;
 
 // 方式一：手动传入配置
 builder.Services.AddRfcClient(builder.Configuration);
@@ -111,7 +111,7 @@ builder.Services.AddRfcClient(
 也支持编程方式注册：
 
 ```csharp
-using mitzh;
+using Mitzh;
 
 builder.Services.AddRfcClient(options =>
 {
@@ -124,7 +124,7 @@ builder.Services.AddRfcClient(options =>
 });
 ```
 
-项目公开命名空间为 `mitzh` 和 `mitzh.Abstractions`。
+项目公开命名空间为 `Mitzh` 和 `Mitzh.Abstractions`。
 
 ### Autofac Module 注册
 
@@ -133,8 +133,8 @@ builder.Services.AddRfcClient(options =>
 ```csharp
 using Autofac;
 using Microsoft.Extensions.Configuration;
-using mitzh;
-using mitzh.Abstractions;
+using Mitzh;
+using Mitzh.Abstractions;
 
 public sealed class RfcModule : Module
 {
@@ -242,7 +242,7 @@ public class SupplyDemandRow
 注入 `IRfcClient`，使用强类型请求/响应模型调用 RFC：
 
 ```csharp
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
 public class SupplyDemandService
 {
@@ -298,7 +298,7 @@ var response = _rfcClient.Invoke<SupplyDemandResponse>(
 中间件示例：
 
 ```csharp
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
 app.Use(async (context, next) =>
 {
@@ -318,7 +318,7 @@ app.Use(async (context, next) =>
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
 [ApiController]
 [Route("api/supply-demand")]
@@ -351,7 +351,7 @@ X-Sap-Rfc-ConfigId: Sap.JSY
 在需要仅为本次调用显式指定 RFC 配置时，直接传入 `configId`：
 
 ```csharp
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
 public class ManualRfcService
 {
@@ -377,8 +377,8 @@ public class ManualRfcService
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using mitzh;
-using mitzh.Abstractions;
+using Mitzh;
+using Mitzh.Abstractions;
 
 public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 {
@@ -431,7 +431,7 @@ public class LoggingRfcConnectionMonitor : IRfcConnectionMonitor
 在 `AddRfcClient` 前后注册监控器：
 
 ```csharp
-using mitzh.Abstractions;
+using Mitzh.Abstractions;
 
 builder.Services.AddSingleton<IRfcConnectionMonitor, LoggingRfcConnectionMonitor>();
 builder.Services.AddRfcClient(builder.Configuration);
@@ -478,5 +478,5 @@ dotnet pack .\RfcClient.csproj -c Release
 生成的 NuGet 包位于：
 
 ```text
-bin/Release/RfcClient.1.0.10.nupkg
+bin/Release/RfcClient.1.0.11.nupkg
 ```
