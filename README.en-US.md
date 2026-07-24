@@ -28,10 +28,19 @@ Additional documentation:
 Install the NuGet package:
 
 ```bash
-dotnet add package RfcClient --version 1.0.9
+dotnet add package RfcClient --version 1.0.10
 ```
 
 The package targets `net10.0` and requires Windows x64 because the bundled SAP NCo assemblies are AMD64 binaries. Starting with version 1.0.1, the package automatically changes an unspecified or `AnyCPU` consumer target to `x64`; consuming projects do not need to add `Platforms` or `PlatformTarget` properties.
+
+### Prerequisites
+
+The SAP NCo native libraries depend on the **Microsoft Visual C++ 2022 Redistributable**. If it is not already installed on the runtime environment, download and install the x64 version:
+
+- **Download**: <https://aka.ms/vc14/vc_redist.x64.exe>
+- **Reference**: <https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist?view=msvc-170>
+
+> The VC++ v14 Redistributable is shared across Visual Studio 2017–2026; installing the latest version satisfies the requirement.
 
 ## Configuration
 
@@ -472,5 +481,5 @@ dotnet pack .\RfcClient.csproj -c Release
 The package is generated under:
 
 ```text
-bin/Release/RfcClient.1.0.9.nupkg
+bin/Release/RfcClient.1.0.10.nupkg
 ```
