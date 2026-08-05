@@ -76,4 +76,15 @@ public class RfcConfigParameter
     ///   获取或设置消息服务器的端口号。默认值为 3600。
     /// </summary>
     public int MessageServerPort { get; set; } = 3600;
+
+    /// <summary>
+    ///   获取或设置一个值，指示是否对传给 SAP 的数值类型自动补全前导零。
+    ///   <para>
+    ///   SAP 的字符型数值字段（如客户号 KUNNR、物料号 MATNR）通常要求固定长度，
+    ///   启用此选项后，整型和纯数字字符串类型的值将根据 SAP 字段元数据的长度自动左补零。
+    ///   例如字段长度为 10 时，<c>123</c> 将被转换为 <c>0000000123</c>。
+    ///   </para>
+    ///   <para>默认值为 <see langword="false"/>，即不补全前导零。</para>
+    /// </summary>
+    public bool PadLeadingZeros { get; set; }
 }

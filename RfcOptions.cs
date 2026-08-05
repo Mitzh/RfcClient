@@ -230,7 +230,8 @@ public class RfcConnectionConfig
             CommunicationTimeout = GetInt(builder, nameof(RfcConfigParameter.CommunicationTimeout), defaultValue: 60),
             MessageServerHost = GetString(builder, nameof(RfcConfigParameter.MessageServerHost)),
             MessageServerService = GetString(builder, nameof(RfcConfigParameter.MessageServerService)),
-            MessageServerPort = GetInt(builder, nameof(RfcConfigParameter.MessageServerPort), defaultValue: 3600)
+            MessageServerPort = GetInt(builder, nameof(RfcConfigParameter.MessageServerPort), defaultValue: 3600),
+            PadLeadingZeros = GetBool(builder, nameof(RfcConfigParameter.PadLeadingZeros), defaultValue: false)
         };
     }
 
@@ -311,6 +312,40 @@ public class RfcConnectionConfig
         }
 
         throw new InvalidOperationException($"ConnectionString parameter '{key}' must be an integer.");
+    }
+
+    /// <summary>
+    ///   从连接字符串构建器中获取布尔值，可指定默认值。
+    ///   支持 true/false、True/False 以及 1/0 格式。
+    /// </summary>
+    /// <param name="builder">数据库连接字符串构建器。</param>
+    /// <param name="key">主键名。</param>
+    /// <param name="aliases">可选别名列表。</param>
+    /// <param name="defaultValue">默认值，当未找到键时返回。</param>
+    /// <returns>获取到的布尔值，未找到时返回默认值。</returns>
+    private static bool GetBool(
+        DbConnectionStringBuilder builder,
+        string key,
+        string[] aliases = null,
+        bool defaultValue = false)
+    {
+        if (!TryGetValue(builder, key, aliases, out var value))
+        {
+            return defaultValue;
+        }
+
+        var text = value?.ToString();
+        if (bool.TryParse(text, out var boolValue))
+        {
+            return boolValue;
+        }
+
+        if (int.TryParse(text, out var intValue))
+        {
+            return intValue != 0;
+        }
+
+        throw new InvalidOperationException($"ConnectionString parameter '{key}' must be a boolean (true/false) or integer (1/0).");
     }
 
     /// <summary>

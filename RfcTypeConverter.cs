@@ -129,24 +129,85 @@ public static class RfcTypeConverter
     }
 
     /// <summary>
+    ///   将 .NET 对象的属性值设置到 RFC 函数中作为输入参数，并根据配置决定是否补全前导零。
+    /// </summary>
+    /// <typeparam name="T">输入对象的类型。</typeparam>
+    /// <param name="function">SAP NCo 的 IRfcFunction 实例。</param>
+    /// <param name="input">包含输入参数值的 .NET 对象。</param>
+    /// <param name="config">RFC 连接配置参数，用于控制前导零补全等行为。</param>
+    public static void SetInputValue<T>(this IRfcFunction function, T input, RfcConfigParameter config)
+    {
+        ArgumentNullException.ThrowIfNull(function);
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(config);
+
+        var padLeadingZeros = config.PadLeadingZeros;
+        foreach (var property in GetReadableColumnProperties(input.GetType()))
+        {
+            var key = GetColumnName(property);
+            if (key is null)
+            {
+                continue;
+            }
+
+            var value = property.GetValue(input);
+            if (value is null or DBNull)
+            {
+                continue;
+            }
+
+            SetInputParameter(function, key, value, padLeadingZeros);
+        }
+    }
+
+    /// <summary>
+    ///   将字典中的键值设置为 RFC 输入参数，并根据配置决定是否补全前导零。
+    /// </summary>
+    /// <param name="function">SAP NCo 的 IRfcFunction 实例。</param>
+    /// <param name="input">包含输入参数键值对的字典。</param>
+    /// <param name="config">RFC 连接配置参数，用于控制前导零补全等行为。</param>
+    public static void SetInputValue(this IRfcFunction function, IDictionary input, RfcConfigParameter config)
+    {
+        ArgumentNullException.ThrowIfNull(function);
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(config);
+
+        var padLeadingZeros = config.PadLeadingZeros;
+        foreach (DictionaryEntry entry in input)
+        {
+            if (entry.Key is not string key || string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentException("Dictionary keys must be non-empty strings.", nameof(input));
+            }
+
+            if (entry.Value is null or DBNull)
+            {
+                continue;
+            }
+
+            SetInputParameter(function, key, entry.Value, padLeadingZeros);
+        }
+    }
+
+    /// <summary>
     ///   设置单个 RFC 输入参数。对象映射到 STRUCTURE，数组和列表映射到 TABLE。
     /// </summary>
-    private static void SetInputParameter(IRfcFunction function, string key, object value)
+    private static void SetInputParameter(IRfcFunction function, string key, object value, bool padLeadingZeros = false)
     {
         var parameter = function[key];
         if (parameter.Metadata.DataType == RfcDataType.STRUCTURE)
         {
-            SetStructureValue(parameter.GetStructure(), value, key);
+            SetStructureValue(parameter.GetStructure(), value, key, padLeadingZeros);
             return;
         }
 
         if (parameter.Metadata.DataType == RfcDataType.TABLE && IsTableCollection(value))
         {
-            SetTableValue(parameter.GetTable(), (IEnumerable)value, key);
+            SetTableValue(parameter.GetTable(), (IEnumerable)value, key, padLeadingZeros);
             return;
         }
 
-        function.SetValue(key, ConvertToSapValue(value, parameter.Metadata, key));
+        function.SetValue(key, ConvertToSapValue(value, parameter.Metadata, key, padLeadingZeros));
     }
 
     /// <summary>
@@ -170,7 +231,7 @@ public static class RfcTypeConverter
     /// <summary>
     ///   将 .NET 集合写入 RFC TABLE。
     /// </summary>
-    private static void SetTableValue(IRfcTable table, IEnumerable rows, string parameterName)
+    private static void SetTableValue(IRfcTable table, IEnumerable rows, string parameterName, bool padLeadingZeros = false)
     {
         table.Clear();
 
@@ -185,7 +246,7 @@ public static class RfcTypeConverter
             }
 
             table.Append();
-            SetStructureValue(table.CurrentRow, row, $"{parameterName}[{rowIndex}]");
+            SetStructureValue(table.CurrentRow, row, $"{parameterName}[{rowIndex}]", padLeadingZeros);
             rowIndex++;
         }
     }
@@ -193,7 +254,7 @@ public static class RfcTypeConverter
     /// <summary>
     ///   将对象或字典中的字段写入 RFC STRUCTURE。
     /// </summary>
-    private static void SetStructureValue(IRfcStructure target, object source, string context)
+    private static void SetStructureValue(IRfcStructure target, object source, string context, bool padLeadingZeros = false)
     {
         if (source is IDictionary dictionary)
         {
@@ -208,7 +269,7 @@ public static class RfcTypeConverter
 
                 if (entry.Value is not null and not DBNull)
                 {
-                    SetStructureField(target, key, entry.Value, context);
+                    SetStructureField(target, key, entry.Value, context, padLeadingZeros);
                 }
             }
 
@@ -235,7 +296,7 @@ public static class RfcTypeConverter
             var value = property.GetValue(source);
             if (value is not null and not DBNull)
             {
-                SetStructureField(target, key, value, context);
+                SetStructureField(target, key, value, context, padLeadingZeros);
             }
         }
     }
@@ -243,22 +304,22 @@ public static class RfcTypeConverter
     /// <summary>
     ///   根据 RFC 字段元数据写入普通值、嵌套 STRUCTURE 或嵌套 TABLE。
     /// </summary>
-    private static void SetStructureField(IRfcStructure target, string key, object value, string context)
+    private static void SetStructureField(IRfcStructure target, string key, object value, string context, bool padLeadingZeros = false)
     {
         var field = target[key];
         if (field.Metadata.DataType == RfcDataType.STRUCTURE)
         {
-            SetStructureValue(field.GetStructure(), value, $"{context}.{key}");
+            SetStructureValue(field.GetStructure(), value, $"{context}.{key}", padLeadingZeros);
             return;
         }
 
         if (field.Metadata.DataType == RfcDataType.TABLE && IsTableCollection(value))
         {
-            SetTableValue(field.GetTable(), (IEnumerable)value, $"{context}.{key}");
+            SetTableValue(field.GetTable(), (IEnumerable)value, $"{context}.{key}", padLeadingZeros);
             return;
         }
 
-        target.SetValue(key, ConvertToSapValue(value, field.Metadata, $"{context}.{key}"));
+        target.SetValue(key, ConvertToSapValue(value, field.Metadata, $"{context}.{key}", padLeadingZeros));
     }
 
     /// <summary>
@@ -360,15 +421,25 @@ public static class RfcTypeConverter
     }
 
     /// <summary>
-    ///   将 .NET 值转换为 SAP RFC 兼容的字符串格式。
-    ///   处理日期和时间类型的特殊转换。
+    ///   将 .NET 值转换为 SAP RFC 兼容的格式。
+    ///   处理日期、时间类型的特殊转换，以及在启用配置时对数值类型补全前导零。
     /// </summary>
     /// <param name="value">要转换的 .NET 值。</param>
     /// <param name="metadata">目标 RFC 字段的类型元数据。</param>
     /// <param name="context">用于错误消息的 RFC 参数或字段路径。</param>
+    /// <param name="padLeadingZeros">是否对数值类型补全前导零。</param>
     /// <returns>转换后适用于 RFC 调用的值。</returns>
-    private static object ConvertToSapValue(object value, RfcElementMetadata metadata, string context)
+    private static object ConvertToSapValue(object value, RfcElementMetadata metadata, string context, bool padLeadingZeros = false)
     {
+        if (padLeadingZeros)
+        {
+            var padded = TryPadLeadingZeros(value, metadata);
+            if (padded is not null)
+            {
+                return padded;
+            }
+        }
+
         return value switch
         {
             DateTime dateTime => dateTime.ToString(SapDateFormat, CultureInfo.InvariantCulture),
@@ -377,6 +448,102 @@ public static class RfcTypeConverter
                 AdjustBcdValue(decimalValue, metadata, context),
             _ => value
         };
+    }
+
+    /// <summary>
+    ///   尝试将数值类型的值补全前导零以匹配 SAP 字段长度。
+    ///   仅对 CHAR 和 NUM 类型的字段生效，且仅当值为整数类型或纯数字字符串时才会补全。
+    /// </summary>
+    /// <param name="value">要补全的值。</param>
+    /// <param name="metadata">RFC 字段元数据，提供字段类型和长度。</param>
+    /// <returns>补全前导零后的字符串；如果不适用则返回 <see langword="null"/>。</returns>
+    private static string TryPadLeadingZeros(object value, RfcElementMetadata metadata)
+    {
+        if (metadata.DataType is not (RfcDataType.CHAR or RfcDataType.NUM))
+        {
+            return null;
+        }
+
+        string text = null;
+        switch (value)
+        {
+            case int i:
+                if (i < 0)
+                {
+                    return null;
+                }
+
+                text = i.ToString(CultureInfo.InvariantCulture);
+                break;
+            case long l:
+                if (l < 0)
+                {
+                    return null;
+                }
+
+                text = l.ToString(CultureInfo.InvariantCulture);
+                break;
+            case short s:
+                if (s < 0)
+                {
+                    return null;
+                }
+
+                text = s.ToString(CultureInfo.InvariantCulture);
+                break;
+            case byte b:
+                text = b.ToString(CultureInfo.InvariantCulture);
+                break;
+            case uint u:
+                text = u.ToString(CultureInfo.InvariantCulture);
+                break;
+            case ulong ul:
+                text = ul.ToString(CultureInfo.InvariantCulture);
+                break;
+            case ushort us:
+                text = us.ToString(CultureInfo.InvariantCulture);
+                break;
+            case string s:
+                text = s?.Trim();
+                break;
+            default:
+                return null;
+        }
+
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        // 仅对纯数字字符串补全前导零；包含字母、符号或小数点的值保持原样
+        if (!IsAllDigits(text))
+        {
+            return null;
+        }
+
+        var fieldLength = metadata.NucLength;
+        if (fieldLength <= 0 || text.Length >= fieldLength)
+        {
+            return text;
+        }
+
+        return text.PadLeft(fieldLength, '0');
+    }
+
+    /// <summary>
+    ///   判断字符串是否全部由数字字符组成。
+    /// </summary>
+    private static bool IsAllDigits(string text)
+    {
+        foreach (var c in text)
+        {
+            if (!char.IsDigit(c))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

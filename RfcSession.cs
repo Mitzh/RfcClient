@@ -90,13 +90,14 @@ internal sealed class RfcSession : IDisposable
         {
             var destination = _destinationRegistry.GetDestination(ConfigId, forceNew);
             var function = destination.Repository.CreateFunction(rfcName);
+            var config = _destinationRegistry.GetConfigParameter(ConfigId);
             if (input is IDictionary dictionary)
             {
-                function.SetInputValue(dictionary);
+                function.SetInputValue(dictionary, config);
             }
             else
             {
-                function.SetInputValue(input);
+                function.SetInputValue(input, config);
             }
 
             function.Invoke(destination);

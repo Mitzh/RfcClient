@@ -84,9 +84,34 @@ CommunicationTimeout
 MessageServerHost
 MessageServerService
 MessageServerPort
+PadLeadingZeros
 ```
 
 `ApplicationServer` / `Server` is used for direct application server connections. `MessageServerHost` is used for message server connections.
+
+### Leading Zero Padding (PadLeadingZeros)
+
+SAP character-type numeric fields (such as customer number KUNNR, material number MATNR) typically require a fixed length. When `PadLeadingZeros` is enabled, integer and pure-digit string input values are automatically left-padded with zeros to match the SAP field metadata length.
+
+For example, if the SAP field length is 10, `123` is converted to `0000000123`, and `"123"` is likewise padded to `"0000000123"`.
+
+Add `PadLeadingZeros=true` to the connection string to enable:
+
+```json
+{
+  "RfcConnectionConfigs": [
+    {
+      "ConfigId": "Sap",
+      "IsDefault": true,
+      "ConnectionString": "ApplicationServer=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;PadLeadingZeros=true;"
+    }
+  ]
+}
+```
+
+Accepts `true/false`, `True/False`, and `1/0` formats. Defaults to `false` (no padding).
+
+Only applies to `CHAR` and `NUM` type SAP fields; negative numbers and strings containing non-digit characters are not padded.
 
 ## Register Services
 
