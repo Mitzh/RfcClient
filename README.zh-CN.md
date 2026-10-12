@@ -89,6 +89,30 @@ PadLeadingZeros
 
 `AppServerHost` 用于直连应用服务器模式（兼容旧别名 `ApplicationServer` / `Server`），`MessageServerHost` 用于消息服务器（负载均衡）模式。
 
+### 前导零补全（PadLeadingZeros）
+
+SAP 的字符型数值字段（如客户号 KUNNR、物料号 MATNR）通常要求固定长度。启用 `PadLeadingZeros` 后，整型和纯数字字符串类型的输入值会根据 SAP 字段元数据的长度自动左补零。
+
+例如 SAP 字段长度为 10 时，`123` 会被转换为 `0000000123`，`"123"` 同样会被补全为 `"0000000123"`。
+
+在连接字符串中添加 `PadLeadingZeros=true` 即可启用：
+
+```json
+{
+  "RfcConnectionConfigs": [
+    {
+      "ConfigId": "Sap",
+      "IsDefault": true,
+      "ConnectionString": "AppServerHost=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;PadLeadingZeros=true;"
+    }
+  ]
+}
+```
+
+支持 `true/false`、`True/False` 以及 `1/0` 格式。默认值为 `false`，即不补全前导零。
+
+仅对 `CHAR` 和 `NUM` 类型的 SAP 字段生效；值为负数或包含非数字字符的字符串不会被补全。
+
 ## 注册服务
 
 通过 `IServiceCollection` 注册客户端。可显式传入配置，也可让客户端自动从 DI 容器解析 `IConfiguration`：
