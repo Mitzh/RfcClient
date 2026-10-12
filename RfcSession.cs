@@ -17,6 +17,12 @@ internal sealed class RfcSession : IDisposable
     private bool _disposed;
 
     /// <summary>
+    ///   指示本会话是否已向连接管理器登记占用（用于成对释放）。
+    ///   同一会话多次调用 <see cref="Invoke{TOut}"/> 只登记一次。
+    /// </summary>
+    private bool _destinationAcquired;
+
+    /// <summary>
     ///   初始化 <see cref="RfcSession"/> 类的新实例。
     /// </summary>
     /// <param name="configId">RFC 配置标识。</param>
@@ -89,6 +95,12 @@ internal sealed class RfcSession : IDisposable
         try
         {
             var destination = _destinationRegistry.GetDestination(ConfigId, forceNew);
+            if (!_destinationAcquired)
+            {
+                RfcConnectionManager.AcquireDestination(ConfigId);
+                _destinationAcquired = true;
+            }
+
             var function = destination.Repository.CreateFunction(rfcName);
             var config = _destinationRegistry.GetConfigParameter(ConfigId);
             if (input is IDictionary dictionary)
@@ -127,11 +139,25 @@ internal sealed class RfcSession : IDisposable
 
     /// <summary>
     ///   释放会话资源。
-    ///   将会话标记为已释放，后续调用 Invoke 将引发 ObjectDisposedException。
+    ///   释放对连接管理器所登记的目标占用，并将会话标记为已释放；
+    ///   后续调用 <see cref="Invoke{TOut}"/> 将引发 <see cref="ObjectDisposedException"/>。
+    ///   重复调用此方法是安全的。
     /// </summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
+
+        if (_destinationAcquired)
+        {
+            RfcConnectionManager.ReleaseDestination(ConfigId);
+            _destinationAcquired = false;
+        }
+
         GC.SuppressFinalize(this);
     }
 }

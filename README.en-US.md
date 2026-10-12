@@ -490,6 +490,10 @@ Configuration options: the library exposes two timing options in `RfcOptions`:
 - `CleanupInterval` (default `00:05:00`): how often the client checks for idle destinations to cleanup.
 - `DestinationIdleTimeout` (default `00:10:00`): how long a destination can stay unused before being removed from the cache.
 
+Cleanup only applies to destinations with **no active sessions**: `RfcSession` registers itself on acquire and
+decrements the reference count on release. An in-flight RFC call is therefore never evicted even if it runs
+longer than `DestinationIdleTimeout`, and the idle timer is measured from the last release.
+
 You can set these in `appsettings.json` or via code when registering the services.
 
 ## XML Documentation

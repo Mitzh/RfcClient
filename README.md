@@ -489,6 +489,9 @@ libs/sapnco_utils.dll
 - `CleanupInterval`（默认 `00:05:00`）：客户端检查空闲 destination 的频率。
 - `DestinationIdleTimeout`（默认 `00:10:00`）：destination 未被使用多久后从缓存中移除。
 
+清理只对**没有活动会话**的 destination 生效：`RfcSession` 在调用开始时登记占用，在释放时递减引用计数。
+因此正在执行的 RFC 调用即使耗时超过 `DestinationIdleTimeout` 也不会被回收，空闲计时从最后一次释放开始计算。
+
 可在 `appsettings.json` 中或注册服务时通过代码设置。
 
 ## XML 文档

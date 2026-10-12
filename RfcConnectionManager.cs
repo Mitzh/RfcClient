@@ -13,6 +13,13 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
     private static readonly ConcurrentDictionary<string, RfcConfigParameter> _destinations = new();
     private static readonly ConcurrentDictionary<string, RfcDestination> _destinationCache = new();
     private static readonly ConcurrentDictionary<string, DateTime> _lastAccessTime = new();
+
+    /// <summary>
+    ///   每个目标当前的活动会话引用计数（键为目标名称）。
+    ///   计数大于零时清理定时器会跳过该目标，避免回收正在执行的调用所用的连接。
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, int> _activeSessions = new();
+
     private static bool _configurationRegistered;
     private static readonly object _lock = new();
     private static Timer _cleanupTimer;
@@ -94,6 +101,12 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
 
         foreach (var key in keysToRemove)
         {
+            // 仍有会话持有该目标时跳过，待最后一个会话释放后由下一轮清理回收
+            if (_activeSessions.TryGetValue(key, out var activeCount) && activeCount > 0)
+            {
+                continue;
+            }
+
             RemoveCachedDestination(key);
         }
     }
@@ -146,6 +159,8 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
     {
         _destinationCache.TryRemove(destinationName, out _);
         _lastAccessTime.TryRemove(destinationName, out _);
+        // 仅清除已归零的计数条目，避免误删仍在使用的会话引用
+        _activeSessions.TryRemove(new KeyValuePair<string, int>(destinationName, 0));
     }
 
     /// <summary>
@@ -159,12 +174,37 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
     }
 
     /// <summary>
-    ///   释放指定的目标连接，更新其最后访问时间以延迟清理。
+    ///   标记指定目标已被一个会话占用，递增其活动引用计数并刷新最后访问时间。
+    ///   与 <see cref="ReleaseDestination"/> 成对使用；只要计数大于零，清理定时器就不会回收该目标，
+    ///   从而避免正在执行的调用所用的连接被误清理。
+    /// </summary>
+    /// <param name="destinationName">目标名称。</param>
+    public static void AcquireDestination(string destinationName)
+    {
+        if (string.IsNullOrWhiteSpace(destinationName))
+        {
+            return;
+        }
+
+        _lastAccessTime.AddOrUpdate(destinationName, DateTime.UtcNow, (_, _) => DateTime.UtcNow);
+        _activeSessions.AddOrUpdate(destinationName, 1, (_, count) => count + 1);
+    }
+
+    /// <summary>
+    ///   释放指定的目标连接，递减其活动引用计数并刷新最后访问时间。
+    ///   计数归零后，目标才会在超过空闲超时时间后被清理定时器回收。
+    ///   未先调用 <see cref="AcquireDestination"/> 时计数不会被减为负数。
     /// </summary>
     /// <param name="destinationName">目标名称。</param>
     public static void ReleaseDestination(string destinationName)
     {
+        if (string.IsNullOrWhiteSpace(destinationName))
+        {
+            return;
+        }
+
         _lastAccessTime.AddOrUpdate(destinationName, DateTime.UtcNow, (_, _) => DateTime.UtcNow);
+        _activeSessions.AddOrUpdate(destinationName, 0, (_, count) => count > 0 ? count - 1 : 0);
     }
 
     /// <summary>
@@ -330,6 +370,7 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
             _destinations.Clear();
             _destinationCache.Clear();
             _lastAccessTime.Clear();
+            _activeSessions.Clear();
         }
 
         _disposed = true;
