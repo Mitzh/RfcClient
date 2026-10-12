@@ -281,7 +281,7 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
         }
         else
         {
-            parameters[RfcConfigParameters.AppServerHost] = options.ApplicationServer;
+            parameters[RfcConfigParameters.AppServerHost] = options.AppServerHost;
             parameters[RfcConfigParameters.SystemNumber] = options.SystemNumber.ToString();
         }
 
@@ -305,7 +305,7 @@ public class RfcConnectionManager : IDestinationConfiguration, IDisposable
 
         if (
             string.IsNullOrWhiteSpace(options.MessageServerHost)
-            && string.IsNullOrWhiteSpace(options.ApplicationServer)
+            && string.IsNullOrWhiteSpace(options.AppServerHost)
         )
         {
             throw new ArgumentException(

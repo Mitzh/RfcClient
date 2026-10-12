@@ -9,7 +9,7 @@ public class RfcConfigParameter
     /// <summary>
     ///   获取或设置 SAP 应用服务器的主机名或 IP 地址。
     /// </summary>
-    public string ApplicationServer { get; set; } = string.Empty;
+    public string AppServerHost { get; set; } = string.Empty;
 
     /// <summary>
     ///   获取或设置 SAP 系统编号（00-99）。默认值为 "00"。

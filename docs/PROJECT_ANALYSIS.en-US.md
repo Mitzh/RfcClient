@@ -66,7 +66,7 @@ Configure named connections:
     {
       "ConfigId": "Sap",
       "IsDefault": true,
-      "ConnectionString": "ApplicationServer=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;Language=ZH;"
+      "ConnectionString": "AppServerHost=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;Language=ZH;"
     }
   ]
 }

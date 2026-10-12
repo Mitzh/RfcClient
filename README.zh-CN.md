@@ -51,7 +51,7 @@ SAP NCo 原生库依赖 **Microsoft Visual C++ 2022 可再发行程序包**。�
     {
       "ConfigId": "Sap",
       "IsDefault": true,
-      "ConnectionString": "ApplicationServer=192.168.1.65;SystemNumber=00;SystemId=DEV;Client=800;UserName=DEVUSER;Password=******;Language=ZH;PoolSize=5;MaxPoolSize=10;ConnectionTimeout=30;CommunicationTimeout=60;"
+      "ConnectionString": "AppServerHost=192.168.1.65;SystemNumber=00;SystemId=DEV;Client=800;UserName=DEVUSER;Password=******;Language=ZH;PoolSize=5;MaxPoolSize=10;ConnectionTimeout=30;CommunicationTimeout=60;"
     },
     {
       "ConfigId": "Sap.JSY",
@@ -65,8 +65,9 @@ SAP NCo 原生库依赖 **Microsoft Visual C++ 2022 可再发行程序包**。�
 `ConnectionString` 支持的参数映射到 `RfcConfigParameter`：
 
 ```text
-ApplicationServer
+AppServerHost
 Server
+ApplicationServer
 SystemNumber
 SystemId
 Client
@@ -83,9 +84,10 @@ CommunicationTimeout
 MessageServerHost
 MessageServerService
 MessageServerPort
+PadLeadingZeros
 ```
 
-`ApplicationServer` / `Server` 用于直连应用服务器模式，`MessageServerHost` 用于消息服务器（负载均衡）模式。
+`AppServerHost` 用于直连应用服务器模式（兼容旧别名 `ApplicationServer` / `Server`），`MessageServerHost` 用于消息服务器（负载均衡）模式。
 
 ## 注册服务
 
@@ -119,7 +121,7 @@ builder.Services.AddRfcClient(options =>
     {
         ConfigId = "Sap",
         IsDefault = true,
-        ConnectionString = "ApplicationServer=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;"
+        ConnectionString = "AppServerHost=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;"
     });
 });
 ```

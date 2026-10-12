@@ -213,7 +213,10 @@ public class RfcConnectionConfig
 
         return new RfcConfigParameter
         {
-            ApplicationServer = GetString(builder, nameof(RfcConfigParameter.ApplicationServer), "Server"),
+            AppServerHost = GetString(
+                builder,
+                nameof(RfcConfigParameter.AppServerHost),
+                aliases: new[] { "ApplicationServer", "Server" }),
             SystemNumber = GetString(builder, nameof(RfcConfigParameter.SystemNumber), defaultValue: "00"),
             SystemId = GetString(builder, nameof(RfcConfigParameter.SystemId)),
             Client = GetString(builder, nameof(RfcConfigParameter.Client)),

@@ -52,7 +52,7 @@ Add RFC connection configs to `appsettings.json`:
     {
       "ConfigId": "Sap",
       "IsDefault": true,
-      "ConnectionString": "ApplicationServer=192.168.1.65;SystemNumber=00;SystemId=DEV;Client=800;UserName=DEVUSER;Password=******;Language=ZH;PoolSize=5;MaxPoolSize=10;ConnectionTimeout=30;CommunicationTimeout=60;"
+      "ConnectionString": "AppServerHost=192.168.1.65;SystemNumber=00;SystemId=DEV;Client=800;UserName=DEVUSER;Password=******;Language=ZH;PoolSize=5;MaxPoolSize=10;ConnectionTimeout=30;CommunicationTimeout=60;"
     },
     {
       "ConfigId": "Sap.JSY",
@@ -66,8 +66,9 @@ Add RFC connection configs to `appsettings.json`:
 Supported `ConnectionString` parameters map to `RfcConfigParameter`:
 
 ```text
-ApplicationServer
+AppServerHost
 Server
+ApplicationServer
 SystemNumber
 SystemId
 Client
@@ -87,7 +88,7 @@ MessageServerPort
 PadLeadingZeros
 ```
 
-`ApplicationServer` / `Server` is used for direct application server connections. `MessageServerHost` is used for message server connections.
+`AppServerHost` is used for direct application server connections (the legacy aliases `ApplicationServer` and `Server` are still accepted). `MessageServerHost` is used for message server connections.
 
 ### Leading Zero Padding (PadLeadingZeros)
 
@@ -103,7 +104,7 @@ Add `PadLeadingZeros=true` to the connection string to enable:
     {
       "ConfigId": "Sap",
       "IsDefault": true,
-      "ConnectionString": "ApplicationServer=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;PadLeadingZeros=true;"
+      "ConnectionString": "AppServerHost=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;PadLeadingZeros=true;"
     }
   ]
 }
@@ -145,7 +146,7 @@ builder.Services.AddRfcClient(options =>
     {
         ConfigId = "Sap",
         IsDefault = true,
-        ConnectionString = "ApplicationServer=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;"
+        ConnectionString = "AppServerHost=192.168.1.65;SystemNumber=00;Client=800;UserName=DEVUSER;Password=******;"
     });
 });
 ```
